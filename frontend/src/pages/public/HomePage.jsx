@@ -62,10 +62,19 @@ const STATS = [
   { value: '98%',   label: 'On-time departure rate' },
 ];
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function todayLocal() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 // ── SearchWidget ──────────────────────────────────────────────────────────────
 function SearchWidget({ compact = false }) {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ from: '', to: '', date: '', passengers: '1' });
+  const [form, setForm] = useState({ from: '', to: '', date: todayLocal(), passengers: '1' });
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -114,7 +123,6 @@ function SearchWidget({ compact = false }) {
             name="date"
             value={form.date}
             onChange={handleChange}
-            required
             className={inputClass}
           />
         </div>
@@ -142,7 +150,7 @@ function RouteCard({ from, to, distance, duration, price }) {
   return (
     <button
       type="button"
-      onClick={() => navigate(`/search?from=${from}&to=${to}`)}
+      onClick={() => navigate(`/search-trips?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`)}
       className="card-hover text-left w-full group"
     >
       <div className="flex items-center gap-2 mb-3">
@@ -177,30 +185,84 @@ export default function HomePage() {
         </div>
 
         <div className="container-page relative py-24 md:py-32">
-          <div className="max-w-3xl">
-            <span className="badge-accent mb-4 inline-flex">Rwanda's modern bus booking platform</span>
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold leading-tight mb-6">
-              Travel Rwanda{' '}
-              <span
-                className="bg-clip-text text-transparent"
-                style={{ backgroundImage: 'linear-gradient(90deg, #9b72ff 0%, #fa26ae 100%)' }}
-              >
-                fast, simple,
-              </span>{' '}
-              reliable.
-            </h1>
-            <p className="text-lg sm:text-xl text-slate-300 max-w-xl mb-10">
-              Search intercity bus schedules, book your seat online, and get a
-              digital boarding token — all in under 2 minutes.
-            </p>
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            {/* ── Left: text + CTAs ── */}
+            <div>
+              <span className="badge-accent mb-4 inline-flex">Rwanda's modern bus booking platform</span>
+              <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold leading-tight mb-6">
+                Travel Rwanda{' '}
+                <span
+                  className="bg-clip-text text-transparent"
+                  style={{ backgroundImage: 'linear-gradient(90deg, #9b72ff 0%, #fa26ae 100%)' }}
+                >
+                  fast, simple,
+                </span>{' '}
+                reliable.
+              </h1>
+              <p className="text-lg sm:text-xl text-slate-300 max-w-xl mb-10">
+                Search intercity bus schedules, book your seat online, and get a
+                digital boarding token — all in under 2 minutes.
+              </p>
 
-            <div className="flex flex-wrap gap-3">
-              <Link to="/register" className="btn-gradient text-base px-7 py-3">
-                Book a trip
-              </Link>
-              <Link to="/how-it-works" className="btn-secondary text-base px-7 py-3">
-                How it works
-              </Link>
+              <div className="flex flex-wrap gap-3">
+                <Link to="/register" className="btn-gradient text-base px-7 py-3">
+                  Book a trip
+                </Link>
+                <Link to="/how-it-works" className="btn-secondary text-base px-7 py-3">
+                  How it works
+                </Link>
+              </div>
+
+              {/* Floating trust chips */}
+              <div className="flex flex-wrap gap-2 mt-8">
+                {['Secure payments', 'Instant confirmation', 'Digital boarding'].map((chip) => (
+                  <span
+                    key={chip}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium
+                               bg-white/10 text-white border border-white/20 backdrop-blur-sm"
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-accent-400 inline-block" />
+                    {chip}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* ── Right: hero illustration ── */}
+            <div className="relative flex justify-center lg:justify-end">
+              {/* Brand glow halo behind the image */}
+              <div
+                className="absolute inset-0 rounded-3xl blur-3xl opacity-30 pointer-events-none"
+                style={{ background: 'radial-gradient(ellipse at 60% 40%, #6e26ff 0%, #fa26ae 60%, transparent 100%)' }}
+                aria-hidden
+              />
+              {/* Outer soft ring */}
+              <div className="relative p-1.5 rounded-3xl"
+                   style={{ background: 'linear-gradient(135deg, rgba(110,38,255,0.5) 0%, rgba(250,38,174,0.5) 100%)' }}>
+                {/* Glass card frame */}
+                <div
+                  className="relative rounded-[1.25rem] overflow-hidden"
+                  style={{
+                    background: 'linear-gradient(145deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.02) 100%)',
+                    boxShadow: '0 8px 40px 0 rgba(110,38,255,0.45), 0 2px 12px 0 rgba(250,38,174,0.25)',
+                    backdropFilter: 'blur(4px)',
+                  }}
+                >
+                  <img
+                    src="/hero_image.png"
+                    alt="Rugendo Rwanda — modern intercity bus travel in Rwanda"
+                    className="block w-full max-w-sm lg:max-w-full object-contain"
+                    style={{ maxHeight: '420px' }}
+                    draggable={false}
+                  />
+                  {/* Subtle inner gradient overlay at bottom for depth */}
+                  <div
+                    className="absolute bottom-0 inset-x-0 h-16 pointer-events-none"
+                    style={{ background: 'linear-gradient(to top, rgba(26,8,69,0.5) 0%, transparent 100%)' }}
+                    aria-hidden
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -375,7 +437,7 @@ export default function HomePage() {
                   Create free account
                 </Link>
                 <Link
-                  to="/search"
+                  to="/search-trips"
                   className="inline-flex items-center bg-white/10 hover:bg-white/20 text-white font-semibold px-8 py-3 rounded-xl border border-white/30 transition-colors"
                 >
                   Search trips

@@ -1,6 +1,12 @@
 import * as authService from './auth.service.js';
 import { success, badRequest } from '../../utils/apiResponse.js';
-import { validateLogin, validateRegister } from './auth.validator.js';
+import {
+  validateRegister,
+  validateLogin,
+  validateForgotPassword,
+  validateResetPassword,
+  validateGoogleAuth,
+} from './auth.validator.js';
 
 export async function register(req, res, next) {
   try {
@@ -44,8 +50,42 @@ export async function logout(req, res, next) {
 
 export async function forgotPassword(req, res, next) {
   try {
-    // TODO: implement password reset email flow
+    const parsed = validateForgotPassword(req.body);
+    if (!parsed.success) return badRequest(res, 'Validation error', parsed.error.flatten().fieldErrors);
+    await authService.forgotPassword(parsed.data);
+    // Always return the same message — do not reveal whether the email exists.
     return success(res, null, 'If the email exists, a reset link has been sent');
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function resetPassword(req, res, next) {
+  try {
+    const parsed = validateResetPassword(req.body);
+    if (!parsed.success) return badRequest(res, 'Validation error', parsed.error.flatten().fieldErrors);
+    await authService.resetPassword(parsed.data);
+    return success(res, null, 'Password updated successfully');
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function googleAuth(req, res, next) {
+  try {
+    const parsed = validateGoogleAuth(req.body);
+    if (!parsed.success) return badRequest(res, 'Validation error', parsed.error.flatten().fieldErrors);
+    const data = await authService.googleAuth(parsed.data);
+    return success(res, data, 'Google authentication successful');
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getMe(req, res, next) {
+  try {
+    const data = await authService.getMe(req.user.id);
+    return success(res, data, 'Profile fetched');
   } catch (err) {
     next(err);
   }

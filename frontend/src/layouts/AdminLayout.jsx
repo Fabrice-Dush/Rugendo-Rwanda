@@ -1,8 +1,17 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from '../components/common/Sidebar.jsx';
+import { useTheme } from '../contexts/ThemeContext.jsx';
 
 export default function AdminLayout() {
+  const { setTheme } = useTheme();
+
+  useEffect(() => {
+    if (!localStorage.getItem('rugendo-theme')) {
+      setTheme('dark');
+    }
+  }, []);
+
   return (
     <div className="min-h-screen flex">
       <Sidebar role="admin" />

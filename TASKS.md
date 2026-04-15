@@ -10,59 +10,38 @@
 
 ---
 
-## Current Phase: Phase 2 — Schema Verification + Auth Implementation
+## Current Phase: Phase 3 — Route Search & Schedule Discovery (implemented; migration + seeding + manual testing pending)
 
 ---
 
 ## TODO
 
-### Foundation Verification
-
-- [ ] Review frontend scaffold — confirm folder structure, routing, and role layouts are correct
-- [ ] Review backend scaffold — confirm module structure, middleware wiring, and entry point
-- [ ] Review Prisma schema against all business requirements (roles, booking statuses, payment statuses, relations)
-- [ ] Confirm all five roles are modelled correctly: `guest`, `passenger`, `admin`, `super_admin`, `operator`
-- [ ] Confirm booking status values: `pending`, `confirmed`, `cancelled`, `completed`
-- [ ] Confirm payment status values: `pending`, `paid`, `failed`, `refunded`
-- [ ] Confirm schedule ↔ booking ↔ payment relations are complete
-- [ ] Confirm seat reservation model exists or plan it
-
 ### Database Setup
 
-- [ ] Configure backend `.env` with correct MySQL connection string
-- [ ] Run `npx prisma migrate dev --name init` and verify it succeeds
-- [ ] Verify all tables created correctly in MySQL (check via Prisma Studio or MySQL client)
-- [ ] Decide on seed strategy: manual fixtures or Prisma seed script
-- [ ] Seed at least one admin user, one route, and one schedule for testing
+- [ ] Start MySQL server and run `npx prisma migrate dev --name init` (blocked: MySQL not running)
+- [ ] Verify all tables created correctly in MySQL
+- [ ] Run seed: `node prisma/seed.js` to create one user per role for testing
 
-### Auth Implementation (Backend)
+### Auth — Manual Testing Required
 
-- [ ] Implement `POST /api/auth/register` — validate input, hash password, create passenger user
-- [ ] Implement `POST /api/auth/login` — validate credentials, issue access token + refresh token
-- [ ] Implement `POST /api/auth/refresh` — validate refresh token, issue new access token
-- [ ] Implement `POST /api/auth/logout` — invalidate refresh token
-- [ ] Implement `GET /api/me` — return current user profile from access token
-- [ ] Implement `POST /api/auth/forgot-password` — generate reset token, store it
-- [ ] Implement `POST /api/auth/reset-password` — validate token, update password
-- [ ] Protect backend routes by role using middleware (`requireAuth`, `requireRole`)
-- [ ] Verify token expiry handling (access: short-lived, refresh: longer-lived)
-
-### Frontend Auth Integration
-
-- [ ] Connect Register page to `POST /api/auth/register`
-- [ ] Connect Login page to `POST /api/auth/login`
-- [ ] Connect Forgot Password page to `POST /api/auth/forgot-password`
-- [ ] Connect Reset Password page to `POST /api/auth/reset-password`
-- [ ] Persist auth session correctly (store access token in memory, refresh token in httpOnly cookie or localStorage with risk awareness)
-- [ ] Implement auto-refresh of access token using refresh token
-- [ ] Implement role-based redirect after login:
-  - `passenger` → `/dashboard` or `/`
-  - `admin` → `/admin`
-  - `super_admin` → `/super-admin`
-  - `operator` → `/operator`
-- [ ] Implement logout — clear tokens, redirect to home
-- [ ] Verify protected frontend routes block unauthenticated access
-- [ ] Verify role-gated frontend routes block wrong roles
+- [ ] Test `POST /api/auth/register` with email + Rwanda phone
+- [ ] Test `POST /api/auth/login` with email identifier
+- [ ] Test `POST /api/auth/login` with Rwanda phone identifier
+- [ ] Test `POST /api/auth/refresh` with valid refresh token
+- [ ] Test `POST /api/auth/logout`
+- [ ] Test `GET /api/me` with valid access token
+- [ ] Test `POST /api/auth/forgot-password` (check console for reset link in dev)
+- [ ] Test `POST /api/auth/reset-password` with valid token
+- [ ] Test `POST /api/auth/google` with a real Google credential
+- [x] Implement role-based redirect after login (passenger → `/`, others → their dashboard)
+- [x] Avatar/user dropdown in navbar (Profile, Dashboard, Logout) for all logged-in roles
+- [x] Dashboard dark-mode default (applies if no theme preference stored)
+- [x] Sidebar: Profile + Homepage links for all roles
+- [x] Shared `/profile` route accessible to all authenticated roles
+- [ ] Verify role-based redirect to correct dashboard after login
+- [ ] Verify ProtectedRoute blocks unauthenticated access
+- [ ] Verify ProtectedRoute blocks wrong-role access
+- [ ] Verify Google button renders on login and register pages
 
 ### Theme and Language Verification
 
@@ -72,9 +51,12 @@
 
 ### Near-Next (After Auth is Solid)
 
-- [ ] Route search — `GET /api/routes/search?from=&to=&date=`
-- [ ] Schedule listing for a route and date
-- [ ] Seat selection / count selection
+- [x] Route search — `GET /api/schedules/search?from=&to=&date=&seats=`
+- [x] Public routes listing — `GET /api/routes`
+- [x] Schedule listing for a route and date (real API, loading/error/empty states)
+- [x] Seat count selection on booking summary page
+- [x] Schedule selection handoff — `BookingPage` loads schedule by ID, shows summary, passes state toward payment
+- [x] Seed data — companies, buses, drivers, routes, schedules for testing search
 - [ ] Booking creation — `POST /api/bookings`
 - [ ] Simulated payment flow — `POST /api/payments`
 - [ ] Booking token / reference generation (unique, human-readable)
@@ -106,3 +88,25 @@
 - [x] Scaffold auth routes and controllers (stubbed)
 - [x] Scaffold role-based frontend layouts (passenger, admin, super-admin, operator)
 - [x] Scaffold frontend pages for all major sections (placeholder content)
+
+### Phase 2 — Schema + Auth Implementation
+
+- [x] Review and verify Prisma schema against all business requirements
+- [x] Add googleId, passwordResetToken, passwordResetExpiresAt fields; make passwordHash nullable; add phone @unique
+- [x] Implement `POST /api/auth/register` — name, email, Rwanda phone, password; duplicate checks
+- [x] Implement `POST /api/auth/login` — supports email OR Rwanda phone as identifier
+- [x] Implement `POST /api/auth/refresh` — rotate refresh token
+- [x] Implement `POST /api/auth/logout` — delete refresh token from DB
+- [x] Implement `GET /api/me` and `GET /api/auth/me`
+- [x] Implement `POST /api/auth/forgot-password` — generate reset token (logs to console in dev)
+- [x] Implement `POST /api/auth/reset-password` — validate token, update password, clear token
+- [x] Implement `POST /api/auth/google` — verify Google ID token, find/create/link user
+- [x] Rwanda phone validation regex on both backend (Zod) and frontend
+- [x] Role normalization in AuthContext: DB enum (SUPER_ADMIN) → frontend (super_admin)
+- [x] Fix refresh token flow in api.js — send token in body, not empty body
+- [x] Update LoginPage — identifier field (email or phone), Google sign-in button
+- [x] Update RegisterPage — required phone with Rwanda validation hint, Google sign-up button
+- [x] Fix role strings in router.jsx — super-admin → super_admin (consistent with normalization)
+- [x] Add `requireRole` middleware (already existed; wired into auth routes)
+- [x] Seed script: `prisma/seed.js` with one user per role
+- [x] Frontend `.env` with VITE_GOOGLE_CLIENT_ID

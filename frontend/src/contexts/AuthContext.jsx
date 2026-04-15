@@ -3,14 +3,33 @@ import { authService } from '../services/authService.js';
 
 const AuthContext = createContext(null);
 
+// DB role enum (PASSENGER, ADMIN, SUPER_ADMIN, OPERATOR) → frontend convention
+function normalizeRole(role) {
+  const map = {
+    PASSENGER:   'passenger',
+    ADMIN:       'admin',
+    SUPER_ADMIN: 'super_admin',
+    OPERATOR:    'operator',
+  };
+  return map[role] || role?.toLowerCase() || 'passenger';
+}
+
+function normalizeUser(raw) {
+  if (!raw) return null;
+  return { ...raw, role: normalizeRole(raw.role) };
+}
+
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
+  const [user, setUser]       = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // On mount, try to restore session from localStorage
+    // Restore session from localStorage on mount.
+    // Also validate against the server if an access token exists.
     const stored = localStorage.getItem('rugendo-user');
-    if (stored) {
+    const token  = localStorage.getItem('rugendo-access-token');
+
+    if (stored && token) {
       try {
         setUser(JSON.parse(stored));
       } catch {
@@ -20,26 +39,45 @@ export function AuthProvider({ children }) {
     setLoading(false);
   }, []);
 
-  const login = async (credentials) => {
-    const data = await authService.login(credentials);
-    setUser(data.user);
-    localStorage.setItem('rugendo-user', JSON.stringify(data.user));
-    return data;
+  const _persistUser = (raw) => {
+    const normalized = normalizeUser(raw);
+    setUser(normalized);
+    localStorage.setItem('rugendo-user', JSON.stringify(normalized));
+    return normalized;
   };
 
-  const logout = () => {
-    authService.logout();
-    setUser(null);
-    localStorage.removeItem('rugendo-user');
+  const login = async ({ identifier, password }) => {
+    const data = await authService.login({ identifier, password });
+    const normalized = _persistUser(data.user);
+    return { ...data, user: normalized };
+  };
+
+  const loginWithGoogle = async (credential) => {
+    const data = await authService.googleAuth(credential);
+    const normalized = _persistUser(data.user);
+    return { ...data, user: normalized };
   };
 
   const register = async (payload) => {
-    const data = await authService.register(payload);
-    return data;
+    return authService.register(payload);
+  };
+
+  const logout = async () => {
+    await authService.logout();
+    setUser(null);
+  };
+
+  const refreshUser = async () => {
+    try {
+      const data = await authService.getMe();
+      _persistUser(data.user);
+    } catch {
+      // Token may have expired — let the interceptor handle it
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, register }}>
+    <AuthContext.Provider value={{ user, loading, login, loginWithGoogle, logout, register, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

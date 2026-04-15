@@ -1,14 +1,55 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext.jsx';
 
+const ROLE_ROUTES = {
+  passenger:  '/',
+  admin:      '/admin',
+  super_admin:'/super-admin',
+  operator:   '/operator',
+};
+
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ email: '', password: '' });
-  const [error, setError] = useState('');
+
+  const [form, setForm]       = useState({ identifier: '', password: '' });
+  const [error, setError]     = useState('');
   const [loading, setLoading] = useState(false);
 
+  const googleBtnRef = useRef(null);
+
+  // ── Google Identity Services setup ───────────────────────────────────────
+  useEffect(() => {
+    if (!window.google || !googleBtnRef.current) return;
+
+    window.google.accounts.id.initialize({
+      client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+      callback:  handleGoogleResponse,
+    });
+
+    window.google.accounts.id.renderButton(googleBtnRef.current, {
+      theme: 'outline',
+      size:  'large',
+      width: '100%',
+      text:  'signin_with',
+    });
+  }, []);
+
+  const handleGoogleResponse = async ({ credential }) => {
+    setError('');
+    setLoading(true);
+    try {
+      const data = await loginWithGoogle(credential);
+      navigate(ROLE_ROUTES[data.user.role] || '/');
+    } catch (err) {
+      setError(err.response?.data?.message || 'Google sign-in failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ── Email / phone login ───────────────────────────────────────────────────
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleSubmit = async (e) => {
@@ -17,13 +58,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const data = await login(form);
-      const roleRoutes = {
-        passenger:    '/passenger',
-        admin:        '/admin',
-        'super-admin':'/super-admin',
-        operator:     '/operator',
-      };
-      navigate(roleRoutes[data.user.role] || '/');
+      navigate(ROLE_ROUTES[data.user.role] || '/');
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed. Check your credentials and try again.');
     } finally {
@@ -44,17 +79,26 @@ export default function LoginPage() {
         </div>
       )}
 
+      {/* Google sign-in button — rendered by GSI SDK */}
+      <div ref={googleBtnRef} className="mb-4 flex justify-center" />
+
+      <div className="relative my-5 flex items-center">
+        <div className="flex-grow border-t border-gray-200 dark:border-slate-700" />
+        <span className="mx-3 text-xs text-gray-400 dark:text-slate-500 shrink-0">or sign in with email / phone</span>
+        <div className="flex-grow border-t border-gray-200 dark:border-slate-700" />
+      </div>
+
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="label">Email address</label>
+          <label className="label">Email address or phone number</label>
           <input
-            type="email"
-            name="email"
-            value={form.email}
+            type="text"
+            name="identifier"
+            value={form.identifier}
             onChange={handleChange}
             required
-            autoComplete="email"
-            placeholder="you@example.com"
+            autoComplete="username"
+            placeholder="you@example.com or 0781234567"
             className="input"
           />
         </div>

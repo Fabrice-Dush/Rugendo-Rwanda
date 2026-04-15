@@ -2,7 +2,7 @@ export const ROLES = {
   GUEST: 'guest',
   PASSENGER: 'passenger',
   ADMIN: 'admin',
-  SUPER_ADMIN: 'super-admin',
+  SUPER_ADMIN: 'super_admin',
   OPERATOR: 'operator',
 };
 

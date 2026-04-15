@@ -12,36 +12,37 @@
 
 ## Open Issues
 
-### BUG-001 — Business logic is stubbed throughout
+### BUG-001 — Business logic stubbed (booking/payment/admin modules)
 
 **Severity:** High  
-**Area:** Backend — auth, routes, bookings, payments (all)  
-**Description:** The backend scaffold has controllers and route files in place, but the actual business logic (database queries, validation, token handling, etc.) is entirely stubbed or missing. No endpoint currently does meaningful work.  
-**Status:** Open — this is the primary focus of Phase 2.  
+**Area:** Backend — bookings, payments, boarding, operators, admin modules  
+**Description:** Schedules and routes are now implemented (search, get-by-id, public listing). Booking creation, payment, boarding, admin CRUD modules still have stubbed or empty controllers.  
+**Status:** Open — next focus is booking creation.  
 **Discovered:** Project scaffold review
 
 ---
 
-### BUG-002 — Prisma schema not yet validated against business requirements
+### BUG-004 — Migration not yet run (MySQL not running at implementation time)
 
 **Severity:** High  
-**Area:** Database / Prisma  
-**Description:** The Prisma schema was initialized as part of scaffolding but has not been reviewed against the full business requirements: role model, booking statuses, payment statuses, seat reservation, schedule relations, and booking token generation. Schema may be incomplete or have incorrect relations.  
-**Status:** Open — must be resolved before the first migration is run.  
-**Discovered:** Project scaffold review
-
----
-
-### BUG-003 — Auth flow not verified end-to-end
-
-**Severity:** High  
-**Area:** Auth — frontend + backend  
-**Description:** The auth scaffold (register, login, refresh, logout, forgot/reset password) exists on both frontend and backend but has never been tested end-to-end. Token issuance, refresh logic, password hashing, and role-based redirect have not been verified to work correctly together.  
-**Status:** Open — end-to-end verification is the primary goal of Phase 2 auth work.  
-**Discovered:** Project scaffold review
+**Area:** Database  
+**Description:** The Prisma schema has been updated (passwordHash nullable, phone unique, googleId, passwordResetToken fields added) but the migration has not been applied because MySQL was not running. The database schema is out of sync with the Prisma schema.  
+**Status:** Open — run `npx prisma migrate dev --name init` from the backend directory once MySQL is started.  
+**Discovered:** 2026-04-15
 
 ---
 
 ## Resolved Issues
 
-_None yet._
+### BUG-002 — Prisma schema not validated against business requirements
+
+**Fix:** Schema reviewed and refined: passwordHash made nullable (Google auth), phone made unique (login by phone), googleId field added, passwordResetToken + passwordResetExpiresAt fields added. All enums, relations, statuses confirmed correct.  
+**Resolved:** 2026-04-15
+
+---
+
+### BUG-003 — Auth flow not verified end-to-end
+
+**Fix:** Full auth implementation completed: register (with Rwanda phone validation), login by email or phone, refresh token rotation, logout, forgot/reset password, Google auth, /api/me. Frontend connected with AuthContext, role normalization, and Google sign-in buttons.  
+**Status:** Implemented. Manual testing still needed once MySQL migration is applied.  
+**Resolved (pending migration):** 2026-04-15

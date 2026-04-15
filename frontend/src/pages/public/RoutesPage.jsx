@@ -51,7 +51,7 @@ export default function RoutesPage() {
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Most popular routes</h2>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {popular.map((r) => (
-              <RouteCard key={`${r.from}-${r.to}`} route={r} onBook={(from, to) => navigate(`/search?from=${from}&to=${to}`)} />
+              <RouteCard key={`${r.from}-${r.to}`} route={r} onBook={(from, to) => navigate(`/search-trips?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`)} />
             ))}
           </div>
         </div>
@@ -105,7 +105,7 @@ export default function RoutesPage() {
                       </td>
                       <td className="py-3">
                         <button
-                          onClick={() => navigate(`/search?from=${r.from}&to=${r.to}`)}
+                          onClick={() => navigate(`/search-trips?from=${encodeURIComponent(r.from)}&to=${encodeURIComponent(r.to)}`)}
                           className="btn-secondary text-xs px-3 py-1.5"
                         >
                           View schedules
