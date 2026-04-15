@@ -1,0 +1,28 @@
+import api from './api.js';
+
+export const bookingService = {
+  async searchSchedules(params) {
+    const { data } = await api.get('/schedules/search', { params });
+    return data;
+  },
+
+  async createBooking(payload) {
+    const { data } = await api.post('/bookings', payload);
+    return data;
+  },
+
+  async getMyBookings() {
+    const { data } = await api.get('/bookings/my');
+    return data;
+  },
+
+  async getBookingById(id) {
+    const { data } = await api.get(`/bookings/${id}`);
+    return data;
+  },
+
+  async cancelBooking(id) {
+    const { data } = await api.patch(`/bookings/${id}/cancel`);
+    return data;
+  },
+};
