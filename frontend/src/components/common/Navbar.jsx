@@ -1,0 +1,149 @@
+import React, { useState } from 'react';
+import { Link, NavLink } from 'react-router-dom';
+import { useTheme } from '../../contexts/ThemeContext.jsx';
+import { useLanguage } from '../../contexts/LanguageContext.jsx';
+import { useAuth } from '../../contexts/AuthContext.jsx';
+
+const NAV_LINKS = [
+  { to: '/',            label: 'Home',       end: true },
+  { to: '/search',      label: 'Search trips' },
+  { to: '/routes',      label: 'Routes' },
+  { to: '/how-it-works',label: 'How it works' },
+];
+
+const ROLE_DASHBOARD = {
+  passenger:    '/passenger',
+  admin:        '/admin',
+  'super-admin':'/super-admin',
+  operator:     '/operator',
+};
+
+export default function Navbar() {
+  const { theme, toggleTheme } = useTheme();
+  const { language, changeLanguage, SUPPORTED_LANGUAGES } = useLanguage();
+  const { user, logout } = useAuth();
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const navLinkClass = ({ isActive }) =>
+    isActive
+      ? 'text-brand-600 dark:text-brand-400 font-semibold'
+      : 'text-gray-600 dark:text-slate-300 hover:text-brand-600 dark:hover:text-brand-400 transition-colors';
+
+  return (
+    <header className="bg-white dark:bg-[#0e0a1f] border-b border-[#e8e3ff] dark:border-[#2d1a5e] sticky top-0 z-40">
+      <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+
+        {/* Logo */}
+        <Link to="/" className="flex items-center gap-2 shrink-0">
+          <span
+            className="text-xl font-extrabold bg-clip-text text-transparent"
+            style={{ backgroundImage: 'linear-gradient(135deg, #6e26ff 0%, #fa26ae 100%)' }}
+          >
+            Rugendo Rwanda
+          </span>
+        </Link>
+
+        {/* Desktop nav links */}
+        <div className="hidden md:flex items-center gap-6 text-sm font-medium">
+          {NAV_LINKS.map((l) => (
+            <NavLink key={l.to} to={l.to} end={l.end} className={navLinkClass}>
+              {l.label}
+            </NavLink>
+          ))}
+        </div>
+
+        {/* Right controls */}
+        <div className="flex items-center gap-2">
+          {/* Language selector */}
+          <select
+            value={language}
+            onChange={(e) => changeLanguage(e.target.value)}
+            className="hidden sm:block text-xs bg-transparent border border-[#e8e3ff] dark:border-[#2d1a5e] rounded-lg px-2 py-1.5 text-gray-600 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-brand-500"
+          >
+            {SUPPORTED_LANGUAGES.map((lang) => (
+              <option key={lang.code} value={lang.code}>{lang.label}</option>
+            ))}
+          </select>
+
+          {/* Theme toggle */}
+          <button
+            onClick={toggleTheme}
+            className="p-2 rounded-xl bg-[#f8f7ff] dark:bg-[#1a1035] text-gray-600 dark:text-slate-300 hover:bg-brand-50 dark:hover:bg-brand-950 transition-colors"
+            aria-label="Toggle theme"
+          >
+            {theme === 'dark' ? '☀️' : '🌙'}
+          </button>
+
+          {/* Auth controls */}
+          {user ? (
+            <div className="hidden sm:flex items-center gap-2">
+              <Link
+                to={ROLE_DASHBOARD[user.role] || '/'}
+                className="btn-secondary text-sm py-2 px-3"
+              >
+                Dashboard
+              </Link>
+              <button onClick={logout} className="btn-ghost text-sm">
+                Sign out
+              </button>
+            </div>
+          ) : (
+            <div className="hidden sm:flex items-center gap-2">
+              <Link to="/login" className="btn-ghost text-sm">Sign in</Link>
+              <Link to="/register" className="btn-primary text-sm py-2">Register</Link>
+            </div>
+          )}
+
+          {/* Mobile menu button */}
+          <button
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="md:hidden p-2 rounded-xl bg-[#f8f7ff] dark:bg-[#1a1035] text-gray-600 dark:text-slate-300"
+            aria-label="Toggle menu"
+          >
+            {menuOpen ? '✕' : '☰'}
+          </button>
+        </div>
+      </nav>
+
+      {/* Mobile menu */}
+      {menuOpen && (
+        <div className="md:hidden bg-white dark:bg-[#0e0a1f] border-t border-[#e8e3ff] dark:border-[#2d1a5e] px-4 pb-4 pt-2 space-y-1">
+          {NAV_LINKS.map((l) => (
+            <NavLink
+              key={l.to}
+              to={l.to}
+              end={l.end}
+              onClick={() => setMenuOpen(false)}
+              className={({ isActive }) =>
+                `block px-3 py-2 rounded-xl text-sm font-medium transition-colors ${
+                  isActive
+                    ? 'bg-brand-50 dark:bg-brand-950 text-brand-600 dark:text-brand-400'
+                    : 'text-gray-600 dark:text-slate-300 hover:bg-[#f8f7ff] dark:hover:bg-[#1a1035]'
+                }`
+              }
+            >
+              {l.label}
+            </NavLink>
+          ))}
+          <div className="pt-2 border-t border-[#e8e3ff] dark:border-[#2d1a5e] flex flex-col gap-2">
+            {user ? (
+              <>
+                <Link to={ROLE_DASHBOARD[user.role] || '/'} onClick={() => setMenuOpen(false)} className="btn-secondary text-sm text-center">
+                  Dashboard
+                </Link>
+                <button onClick={() => { logout(); setMenuOpen(false); }} className="btn-ghost text-sm">
+                  Sign out
+                </button>
+              </>
+            ) : (
+              <>
+                <Link to="/login" onClick={() => setMenuOpen(false)} className="btn-secondary text-sm text-center">Sign in</Link>
+                <Link to="/register" onClick={() => setMenuOpen(false)} className="btn-gradient text-sm text-center">Register</Link>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </header>
+  );
+}

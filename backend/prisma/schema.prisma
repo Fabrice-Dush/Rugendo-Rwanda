@@ -1,0 +1,215 @@
+// Rugendo Rwanda — Prisma Schema
+// Database: MySQL
+// ORM: Prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum Role {
+  GUEST
+  PASSENGER
+  ADMIN
+  SUPER_ADMIN
+  OPERATOR
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum BusStatus {
+  ACTIVE
+  INACTIVE
+  MAINTENANCE
+}
+
+enum ScheduleStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+// ─── Models ──────────────────────────────────────────────────────────────────
+
+model User {
+  id           Int       @id @default(autoincrement())
+  name         String
+  email        String    @unique
+  passwordHash String
+  phone        String?
+  role         Role      @default(PASSENGER)
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  bookings     Booking[]
+  refreshTokens RefreshToken[]
+  operatorProfile Operator?
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique @db.Text
+  userId    Int
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+model Operator {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @unique
+  companyName String
+  licenseNo   String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id])
+  buses    Bus[]
+  drivers  Driver[]
+  schedules Schedule[]
+
+  @@map("operators")
+}
+
+model Route {
+  id          Int       @id @default(autoincrement())
+  origin      String
+  destination String
+  distanceKm  Float?
+  durationMin Int?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  schedules Schedule[]
+
+  @@unique([origin, destination])
+  @@map("routes")
+}
+
+model Bus {
+  id           Int       @id @default(autoincrement())
+  operatorId   Int
+  plateNumber  String    @unique
+  model        String?
+  capacity     Int
+  status       BusStatus @default(ACTIVE)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  operator  Operator   @relation(fields: [operatorId], references: [id])
+  schedules Schedule[]
+
+  @@map("buses")
+}
+
+model Driver {
+  id          Int      @id @default(autoincrement())
+  operatorId  Int
+  name        String
+  licenseNo   String   @unique
+  phone       String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  operator  Operator   @relation(fields: [operatorId], references: [id])
+  schedules Schedule[]
+
+  @@map("drivers")
+}
+
+model Schedule {
+  id             Int            @id @default(autoincrement())
+  routeId        Int
+  busId          Int
+  driverId       Int
+  operatorId     Int
+  departureTime  DateTime
+  arrivalTime    DateTime
+  price          Decimal        @db.Decimal(10, 2)
+  seatsTotal     Int
+  seatsAvailable Int
+  status         ScheduleStatus @default(SCHEDULED)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  route    Route    @relation(fields: [routeId], references: [id])
+  bus      Bus      @relation(fields: [busId], references: [id])
+  driver   Driver   @relation(fields: [driverId], references: [id])
+  operator Operator @relation(fields: [operatorId], references: [id])
+  bookings Booking[]
+
+  @@map("schedules")
+}
+
+model Booking {
+  id             Int           @id @default(autoincrement())
+  reference      String        @unique
+  userId         Int
+  scheduleId     Int
+  seatsBooked    Int           @default(1)
+  totalAmount    Decimal       @db.Decimal(10, 2)
+  status         BookingStatus @default(PENDING)
+  boardingToken  String?       @unique
+  boardedAt      DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  user     User     @relation(fields: [userId], references: [id])
+  schedule Schedule @relation(fields: [scheduleId], references: [id])
+  payment  Payment?
+
+  @@map("bookings")
+}
+
+model Payment {
+  id            Int           @id @default(autoincrement())
+  bookingId     Int           @unique
+  amount        Decimal       @db.Decimal(10, 2)
+  status        PaymentStatus @default(PENDING)
+  method        String?       // e.g. "momo", "card", "simulated"
+  transactionId String?
+  paidAt        DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+
+  @@map("payments")
+}
+
+model PlatformSetting {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique
+  value     String   @db.Text
+  updatedAt DateTime @updatedAt
+
+  @@map("platform_settings")
+}
