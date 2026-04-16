@@ -34,6 +34,20 @@
 
 ## Resolved Issues
 
+### BUG-005 — Booking after departure not blocked
+
+**Fix:** Added `now >= departureTime` check in `bookings.service.js` after schedule is loaded. Throws `DEPARTED` error code; controller returns 400. `BookingPage.jsx` computes `hasDeparted` flag, disables the confirm button, and shows an amber warning before the user even attempts the request.  
+**Resolved:** 2026-04-16
+
+---
+
+### BUG-006 — Account deletion: post-deletion navigation blocked if logout fails
+
+**Fix:** Separated the `deleteAccount()` call from the `logout()` call in `ProfilePage.jsx`. If `logout()` throws after a successful account deletion, the error is silently caught and the user is still redirected to `/`. The account was already deleted and `authService.logout`'s `finally` block already cleared localStorage.  
+**Resolved:** 2026-04-16
+
+---
+
 ### BUG-002 — Prisma schema not validated against business requirements
 
 **Fix:** Schema reviewed and refined: passwordHash made nullable (Google auth), phone made unique (login by phone), googleId field added, passwordResetToken + passwordResetExpiresAt fields added. All enums, relations, statuses confirmed correct.  

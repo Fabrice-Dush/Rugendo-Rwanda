@@ -5,12 +5,32 @@ const rwandaPhone = z
   .string()
   .regex(/^07(2|3|8|9)\d{7}$/, 'Phone must be a valid Rwanda number (e.g. 0781234567)');
 
-const registerSchema = z.object({
-  name:     z.string().min(2).max(100),
-  email:    z.string().email(),
-  phone:    rwandaPhone,
-  password: z.string().min(8).max(100),
-});
+const registerSchema = z
+  .object({
+    name:     z.string().min(2).max(100),
+    email:    z.string().email().optional().or(z.literal('')),
+    phone:    rwandaPhone.optional().or(z.literal('')),
+    password: z.string().min(8).max(100),
+  })
+  .superRefine((data, ctx) => {
+    const hasEmail = data.email && data.email.trim() !== '';
+    const hasPhone = data.phone && data.phone.trim() !== '';
+    if (!hasEmail && !hasPhone) {
+      ctx.addIssue({
+        code:    z.ZodIssueCode.custom,
+        path:    ['email'],
+        message: 'At least one of email or phone number is required.',
+      });
+    }
+    // Re-validate phone format only when a non-empty phone was provided
+    if (hasPhone && !/^07(2|3|8|9)\d{7}$/.test(data.phone)) {
+      ctx.addIssue({
+        code:    z.ZodIssueCode.custom,
+        path:    ['phone'],
+        message: 'Phone must be a valid Rwanda number (e.g. 0781234567).',
+      });
+    }
+  });
 
 // Login accepts either email or Rwanda phone number as the identifier.
 const loginSchema = z.object({

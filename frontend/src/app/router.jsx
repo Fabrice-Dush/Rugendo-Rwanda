@@ -32,6 +32,8 @@ import ResetPasswordPage from '../pages/auth/ResetPasswordPage.jsx';
 // Passenger pages
 import PassengerDashboard from '../pages/passenger/PassengerDashboard.jsx';
 import BookingPage from '../pages/passenger/BookingPage.jsx';
+import PaymentPage from '../pages/passenger/PaymentPage.jsx';
+import BookingConfirmationPage from '../pages/passenger/BookingConfirmationPage.jsx';
 import MyBookingsPage from '../pages/passenger/MyBookingsPage.jsx';
 import ProfilePage from '../pages/passenger/ProfilePage.jsx';
 
@@ -91,10 +93,12 @@ export default function AppRouter() {
       {/* ── Passenger routes ──────────────────────────────────── */}
       <Route element={<ProtectedRoute allowedRoles={['passenger']} />}>
         <Route element={<PassengerLayout />}>
-          <Route path="/passenger"           element={<PassengerDashboard />} />
-          <Route path="/passenger/book"      element={<BookingPage />} />
-          <Route path="/passenger/bookings"  element={<MyBookingsPage />} />
-          <Route path="/passenger/profile"   element={<ProfilePage />} />
+          <Route path="/passenger"                  element={<PassengerDashboard />} />
+          <Route path="/passenger/book"           element={<BookingPage />} />
+          <Route path="/passenger/payment"        element={<PaymentPage />} />
+          <Route path="/passenger/booking-confirm" element={<BookingConfirmationPage />} />
+          <Route path="/passenger/bookings"       element={<MyBookingsPage />} />
+          <Route path="/passenger/profile"        element={<ProfilePage />} />
         </Route>
       </Route>
 

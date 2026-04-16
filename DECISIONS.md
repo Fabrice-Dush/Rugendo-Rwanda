@@ -217,6 +217,96 @@ Format: `## N. Title` → `**Decision:**` → `**Why:**` → `**Date:**`
 
 ---
 
+## 23. Booking Creation Does Not Reserve Seats — Payment Confirmation Does
+
+**Decision:** `POST /api/bookings` creates a PENDING booking without decrementing `seatsAvailable`. The `POST /api/payments/pay` endpoint runs a Prisma transaction that: creates a PAID Payment record, updates the Booking to CONFIRMED, and decrements `Schedule.seatsAvailable`. If payment fails (simulated), a FAILED Payment is created and the Booking stays PENDING with seats unchanged.
+
+**Why:** The existing UI text already says "Seats are not reserved until payment is completed." Holding seats in PENDING state would require a timeout/cleanup job for abandoned bookings — out of scope for MVP. This approach is clean, safe, and consistent.
+
+**Date:** 2026-04-16
+
+---
+
+## 24. Simulated Payment Uses a Single POST /api/payments/pay Endpoint
+
+**Decision:** The MVP payment flow uses a single `POST /api/payments/pay` endpoint that accepts `{ bookingId, method: 'simulated' | 'fail' }`. `'simulated'` triggers a successful payment + seat decrement inside a transaction. `'fail'` creates a FAILED payment record, leaving the booking PENDING. The `'fail'` option is only exposed as a dev-testing convenience button in the UI.
+
+**Why:** A single endpoint is simpler than separate initiate/confirm steps for a fully simulated flow. The `'fail'` path lets QA and developers test the failure state without manipulating the database directly.
+
+**Date:** 2026-04-16
+
+---
+
+## 25. Booking Reference Format: RW-XXXXXXXX (8 uppercase hex chars)
+
+**Decision:** Each booking gets a unique reference in the format `RW-A3F9C21B` (prefix `RW-` plus 8 uppercase hex characters from 4 random bytes). Generated in the application layer with a collision-retry loop (max 5 attempts). The `reference` field is `@unique` in the schema.
+
+**Why:** Human-readable, easily dictated over the phone, short enough to print, and specific to Rwanda with the `RW-` prefix. Collision probability is negligible (4 billion combinations); the retry loop handles the theoretical edge case.
+
+**Date:** 2026-04-16
+
+---
+
+## 26. Payment Retry: Update Existing FAILED Record, Not Insert New
+
+**Decision:** Because `Payment.bookingId` is `@unique`, a booking can have at most one payment row. When a passenger retries payment after a FAILED attempt, the service updates the existing payment record (status → PAID, new transactionId) rather than creating a new one. A PAID payment record is never overwritten — the booking-status guard (`PENDING` required) prevents that path.
+
+**Why:** The schema constraint `@unique` on `bookingId` means inserting a second payment would fail at the DB level. Updating is the correct semantic: it's the same payment attempt, corrected.
+
+**Date:** 2026-04-16
+
+---
+
+## 27. Cancel Booking: PENDING Only, No Refund in MVP
+
+**Decision:** `PATCH /api/bookings/:id/cancel` is available only for `PENDING` bookings. Confirmed bookings cannot be cancelled via this endpoint in MVP. No refund logic is implemented. The booking status is set to `CANCELLED`; the FAILED payment record (if any) is left as a historical record.
+
+**Why:** MVP does not include refund workflows (Phase 2). Allowing cancellation only on PENDING bookings (where no seats have been decremented and no money has been collected) keeps the logic safe and clean.
+
+**Date:** 2026-04-16
+
+---
+
+## 28. Register: Email OR Phone Required (Not Both)
+
+**Decision:** Registration requires at least one of email or phone. Providing both is allowed. Where phone is provided, Rwanda validation applies (`^07(2|3|8|9)\d{7}$`). Enforced via Zod `superRefine` on backend; JS guard on frontend.
+
+**Why:** Not everyone in Rwanda has a consistent email address, but they do have a phone. Requiring both excluded valid users. Requiring at least one is the correct minimal constraint.
+
+**Date:** 2026-04-16
+
+---
+
+## 29. Duplicate Booking Prevention: Block PENDING/CONFIRMED on Same User + Schedule
+
+**Decision:** Before creating a booking, the service checks for an existing booking by the same `userId` + `scheduleId` where status is `PENDING` or `CONFIRMED`. If found, creation is rejected with a 409 and the message "You already have a booking for this trip." Bookings with status `CANCELLED` or `COMPLETED` do not block a new booking.
+
+**Why:** Accidental duplicate bookings waste seats and confuse passengers. The guard belongs in the service layer, not the route, keeping the controller thin.
+
+**Date:** 2026-04-16
+
+---
+
+## 30. Profile Update: Email and Phone Are Mutable, With Uniqueness Checks
+
+**Decision:** `PATCH /api/users/me` accepts `name`, `email`, and `phone`. Empty string means "clear the field." Uniqueness is only checked when the new value differs from the current stored value, preventing false "already in use" errors when submitting unchanged data.
+
+**Why:** The original `updateUser` only accepted `name` and `phone`, blocking users from changing their email. Uniqueness skip-on-unchanged is required to avoid confusing validation failures.
+
+**Date:** 2026-04-16
+
+---
+
+## 31. Account Deletion: Hard Delete With Cascade
+
+**Decision:** `DELETE /api/users/me` permanently deletes the user row. Cascade rules on the schema ensure `Booking` rows (and their `Payment` rows) are deleted automatically. Refresh tokens are explicitly deleted first to terminate all sessions immediately. A confirmation step (type "DELETE") is required on the frontend before the request is sent.
+
+**Why:** Since the migration has not yet run, cascade rules (`onDelete: Cascade`) were added to the schema for `Booking.user` and `Payment.booking`. This keeps hard delete clean without manual cleanup of child records. There is no soft-delete fallback — the user is informed this is permanent.
+
+**Date:** 2026-04-16
+
+---
+
 ## 10. Payments Are Simulated in MVP
 
 **Decision:** The MVP payment flow is fully simulated. No live gateway (MTN MoMo, Airtel, card) is integrated.

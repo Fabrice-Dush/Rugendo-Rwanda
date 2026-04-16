@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { bookingService } from '../../services/bookingService.js';
+import { useAuth } from '../../contexts/AuthContext.jsx';
 
 function formatTime(isoString) {
   if (!isoString) return '--:--';
@@ -30,10 +31,12 @@ export default function BookingPage() {
   const navigate = useNavigate();
   const scheduleId = parseInt(searchParams.get('scheduleId'), 10);
 
-  const [schedule, setSchedule] = useState(null);
-  const [loading,  setLoading]  = useState(true);
-  const [error,    setError]    = useState(null);
-  const [seats,    setSeats]    = useState(1);
+  const [schedule,      setSchedule]     = useState(null);
+  const [loading,       setLoading]      = useState(true);
+  const [error,         setError]        = useState(null);
+  const [seats,         setSeats]        = useState(1);
+  const [submitting,    setSubmitting]   = useState(false);
+  const [submitError,   setSubmitError]  = useState(null);
 
   useEffect(() => {
     if (!scheduleId || isNaN(scheduleId)) {
@@ -70,13 +73,28 @@ export default function BookingPage() {
   const price      = parseFloat(schedule.price);
   const maxSeats   = Math.min(schedule.seatsAvailable, 6);
   const totalPrice = price * seats;
+  const hasDeparted = new Date() >= new Date(schedule.departureTime);
 
-  function handleConfirm() {
-    // Booking creation (POST /api/bookings) is the next feature batch.
-    // For now, pass state forward via navigation — placeholder until booking API is ready.
-    navigate('/passenger/booking-confirm', {
-      state: { scheduleId: schedule.id, seats, totalAmount: totalPrice, schedule },
-    });
+  async function handleConfirm() {
+    setSubmitError(null);
+    setSubmitting(true);
+    try {
+      const res = await bookingService.createBooking({
+        scheduleId: schedule.id,
+        seats,
+      });
+      // Navigate to payment page with the created booking
+      navigate('/passenger/payment', {
+        state: { booking: res.data, schedule },
+      });
+    } catch (err) {
+      const msg =
+        err?.response?.data?.message ||
+        'Could not create booking. Please try again.';
+      setSubmitError(msg);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -194,10 +212,21 @@ export default function BookingPage() {
       </div>
 
       {/* Actions */}
+      {hasDeparted && (
+        <div className="mb-4 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 text-sm">
+          This trip has already departed and can no longer be booked.
+        </div>
+      )}
+      {submitError && (
+        <div className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 text-sm">
+          {submitError}
+        </div>
+      )}
       <div className="flex gap-3">
         <button
           type="button"
           onClick={() => navigate(-1)}
+          disabled={submitting}
           className="btn-secondary flex-1"
         >
           Back
@@ -205,9 +234,13 @@ export default function BookingPage() {
         <button
           type="button"
           onClick={handleConfirm}
-          className="btn-gradient flex-1"
+          disabled={submitting || hasDeparted}
+          className="btn-gradient flex-1 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Continue to payment
+          {submitting && (
+            <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          )}
+          {submitting ? 'Creating booking…' : 'Continue to payment'}
         </button>
       </div>
 

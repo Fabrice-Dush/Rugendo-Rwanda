@@ -35,9 +35,13 @@ function safeUser(user) {
 // ─── Register ────────────────────────────────────────────────────────────────
 
 export async function register({ name, email, phone, password }) {
+  // Normalise: treat empty string as absent
+  const cleanEmail = email && email.trim() !== '' ? email.trim() : null;
+  const cleanPhone = phone && phone.trim() !== '' ? phone.trim() : null;
+
   const [byEmail, byPhone] = await Promise.all([
-    prisma.user.findUnique({ where: { email } }),
-    prisma.user.findUnique({ where: { phone } }),
+    cleanEmail ? prisma.user.findUnique({ where: { email: cleanEmail } }) : null,
+    cleanPhone ? prisma.user.findUnique({ where: { phone: cleanPhone } }) : null,
   ]);
 
   if (byEmail) {
@@ -53,7 +57,7 @@ export async function register({ name, email, phone, password }) {
 
   const passwordHash = await hashPassword(password);
   const user = await prisma.user.create({
-    data: { name, email, phone, passwordHash },
+    data: { name, email: cleanEmail, phone: cleanPhone, passwordHash },
     select: { id: true, name: true, email: true, phone: true, role: true },
   });
 

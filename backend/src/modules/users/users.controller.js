@@ -1,5 +1,6 @@
 import * as usersService from './users.service.js';
-import { success } from '../../utils/apiResponse.js';
+import { validateUpdateProfile } from './users.validator.js';
+import { success, badRequest, serverError, conflict, notFound } from '../../utils/apiResponse.js';
 
 export async function getMe(req, res, next) {
   try {
@@ -11,10 +12,27 @@ export async function getMe(req, res, next) {
 }
 
 export async function updateMe(req, res, next) {
+  const result = validateUpdateProfile(req.body);
+  if (!result.success) {
+    return badRequest(res, 'Validation failed', result.error.flatten().fieldErrors);
+  }
+
   try {
-    const user = await usersService.updateUser(req.user.id, req.body);
+    const user = await usersService.updateUser(req.user.id, result.data);
     return success(res, user, 'Profile updated');
   } catch (err) {
+    if (err.status === 409) return conflict(res, err.message);
+    if (err.status === 404) return notFound(res, err.message);
+    next(err);
+  }
+}
+
+export async function deleteMe(req, res, next) {
+  try {
+    await usersService.deleteUser(req.user.id);
+    return success(res, null, 'Account deleted');
+  } catch (err) {
+    if (err.status === 404) return notFound(res, err.message);
     next(err);
   }
 }

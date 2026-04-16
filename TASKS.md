@@ -10,7 +10,7 @@
 
 ---
 
-## Current Phase: Phase 3 — Route Search & Schedule Discovery (implemented; migration + seeding + manual testing pending)
+## Current Phase: Phase 4 — Booking, Simulated Payment & Confirmation (implemented; migration + manual testing pending)
 
 ---
 
@@ -57,12 +57,22 @@
 - [x] Seat count selection on booking summary page
 - [x] Schedule selection handoff — `BookingPage` loads schedule by ID, shows summary, passes state toward payment
 - [x] Seed data — companies, buses, drivers, routes, schedules for testing search
-- [ ] Booking creation — `POST /api/bookings`
-- [ ] Simulated payment flow — `POST /api/payments`
-- [ ] Booking token / reference generation (unique, human-readable)
-- [ ] Booking confirmation page
-- [ ] My Bookings page (upcoming trips)
-- [ ] Past Trips page
+- [x] Booking creation — `POST /api/bookings`
+- [x] Simulated payment flow — `POST /api/payments/pay`
+- [x] Booking token / reference generation (unique, human-readable) — format: RW-XXXXXXXX
+- [x] Booking confirmation page — `/passenger/booking-confirm`
+- [x] My Bookings page (upcoming trips + past grouping) — `/passenger/bookings`
+- [ ] Past Trips page (basic grouping in MyBookings; dedicated page is future)
+- [x] Cancel booking — `PATCH /api/bookings/:id/cancel` (PENDING-only; service + controller + route implemented)
+- [x] Retry payment after FAILED — backend upserts existing payment record; duplicate-payment guard tightened
+- [x] My Bookings: Retry Payment + Cancel Booking actions for PENDING bookings
+- [x] Signup: email OR phone required (not both) — backend validator + frontend form + auth service
+- [x] Prisma schema: email made nullable (String?) so phone-only registration stores null email correctly
+- [x] Duplicate booking guard: backend blocks second PENDING/CONFIRMED booking for same user + scheduleId (409)
+- [x] Departure time guard: backend blocks booking at or after departureTime (400); frontend disables button and shows warning
+- [x] Profile page: view info, update name/email/phone, permanently delete account with confirmation
+- [x] Account deletion: DELETE /api/users/me route correctly wired; post-deletion navigate is decoupled from logout call
+- [x] Password show/hide toggle on Login, Register, Reset Password forms
 - [ ] Booking details page
 - [ ] Admin: user management CRUD
 - [ ] Admin: route management CRUD
