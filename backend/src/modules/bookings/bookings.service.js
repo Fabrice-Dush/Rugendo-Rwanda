@@ -145,3 +145,50 @@ export async function cancelBooking(id, userId) {
 
   return updated;
 }
+
+/**
+ * Returns all bookings for the operator's company, plus the company record.
+ * Scoped to the authenticated operator's companyId.
+ */
+export async function getOperatorCompanyBookings(operatorId) {
+  const operator = await prisma.user.findUnique({
+    where:  { id: operatorId },
+    select: { id: true, role: true, companyId: true, isActive: true, company: { select: { id: true, name: true } } },
+  });
+
+  if (!operator || !operator.isActive) {
+    throw Object.assign(new Error('Operator account not found or inactive.'), { code: 'FORBIDDEN' });
+  }
+  if (operator.role !== 'OPERATOR') {
+    throw Object.assign(new Error('Access denied.'), { code: 'FORBIDDEN' });
+  }
+  if (!operator.companyId) {
+    throw Object.assign(new Error('Operator is not assigned to a company.'), { code: 'FORBIDDEN' });
+  }
+
+  const bookings = await prisma.booking.findMany({
+    where: {
+      schedule: { companyId: operator.companyId },
+    },
+    include: {
+      user: { select: { id: true, name: true, email: true, phone: true } },
+      schedule: {
+        select: {
+          id: true,
+          departureTime: true,
+          arrivalTime: true,
+          seatsAvailable: true,
+          seatsTotal: true,
+          price: true,
+          route:   { select: { id: true, origin: true, destination: true } },
+          company: { select: { id: true, name: true } },
+          bus:     { select: { id: true, plateNumber: true, capacity: true } },
+        },
+      },
+      payment: { select: { status: true, paidAt: true, method: true } },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  return { company: operator.company, bookings };
+}

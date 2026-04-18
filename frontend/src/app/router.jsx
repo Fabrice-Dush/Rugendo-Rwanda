@@ -54,6 +54,7 @@ import ManageUsers from '../pages/superAdmin/ManageUsers.jsx';
 // Operator pages
 import OperatorDashboard from '../pages/operator/OperatorDashboard.jsx';
 import BoardingValidation from '../pages/operator/BoardingValidation.jsx';
+import OperatorBookings from '../pages/operator/OperatorBookings.jsx';
 
 // Route guards
 import ProtectedRoute from '../components/common/ProtectedRoute.jsx';
@@ -127,8 +128,9 @@ export default function AppRouter() {
       {/* ── Operator routes ───────────────────────────────────── */}
       <Route element={<ProtectedRoute allowedRoles={['operator']} />}>
         <Route element={<OperatorLayout />}>
-          <Route path="/operator"          element={<OperatorDashboard />} />
-          <Route path="/operator/boarding" element={<BoardingValidation />} />
+          <Route path="/operator"           element={<OperatorDashboard />} />
+          <Route path="/operator/boarding"  element={<BoardingValidation />} />
+          <Route path="/operator/bookings"  element={<OperatorBookings />} />
         </Route>
       </Route>
 

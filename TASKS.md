@@ -49,6 +49,24 @@
 - [ ] Verify language-switching scaffold is in place (string keys, locale file structure)
 - [ ] Confirm no hardcoded UI strings that would block future i18n
 
+### Boarding — Manual Testing Required
+
+- [x] Boarding lookup: reference-only (`?query=RW-XXXXXXXX`); phone/email search removed
+- [x] Boarding lookup returns array of 0 or 1 booking (company-scoped for operators)
+- [x] Operator UI: single reference search field, detail + validate view
+- [x] Operator company bookings: `GET /api/bookings/operator-company` — company-scoped booking list with seat availability
+- [x] Operator bookings page: `/operator/bookings` — shows passenger, reference, route, departure, seats booked, seats remaining, status, payment
+- [x] Seed data updated: 7 diverse bookings across both companies covering all states
+- [ ] Test `GET /api/boarding/lookup?query=RW-A11CE001` (Volcano op — found, boardable)
+- [ ] Test `GET /api/boarding/lookup?query=RW-B0B00002` (Volcano op — 403)
+- [ ] Test `GET /api/boarding/lookup?query=RW-B0B00002` (Horizon op — found)
+- [ ] Test `POST /api/boarding/validate` success path on RW-A11CE001 (CONFIRMED+PAID)
+- [ ] Test boarding validation rejects RW-A11CE002 (PENDING), RW-B0B00001 (CANCELLED), RW-CA01CA01 (COMPLETED)
+- [ ] Test `GET /api/bookings/operator-company` as operator@test.rw → Volcano bookings
+- [ ] Test `GET /api/bookings/operator-company` as operator2@test.rw → Horizon bookings only
+- [ ] Verify operator company banner shows company name on bookings page
+- [ ] Verify seats-remaining column colours correctly (0=red, ≤5=amber, else green)
+
 ### Near-Next (After Auth is Solid)
 
 - [x] Route search — `GET /api/schedules/search?from=&to=&date=&seats=`
@@ -81,7 +99,7 @@
 - [ ] Admin: driver management CRUD
 - [ ] Admin: booking management view
 - [ ] Admin: payment record view
-- [ ] Operator: boarding validation flow
+- [x] Operator: boarding validation flow (backend + frontend; scope enforcement bug fixed; seed booking added)
 - [ ] Super-admin: platform settings page
 
 ---

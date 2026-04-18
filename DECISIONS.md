@@ -314,3 +314,33 @@ Format: `## N. Title` → `**Decision:**` → `**Why:**` → `**Date:**`
 **Why:** Live payment integrations require merchant accounts, KYC, compliance, and testing overhead that would delay the MVP significantly. A simulated flow lets the full booking UX be built and validated end-to-end before real money is involved.
 
 **Date:** Project start
+
+---
+
+## 33. Boarding Lookup: Token/Reference Only [SUPERSEDED by #34]
+
+**Decision:** `GET /api/boarding/lookup` accepts only a booking reference (`RW-XXXXXXXX` format). Phone and email lookup were removed. The query is validated against the reference regex before the service is called. The endpoint returns an array of 0 or 1 booking.
+
+**Why:** The product rule is that a passenger presents their booking token/reference at boarding. Operators look up that specific reference. Phone/email search was added in error; it was not part of the agreed product flow. Removing it keeps the boarding flow unambiguous and avoids leaking passenger contact details through a broader search.
+
+**Date:** 2026-04-17
+
+---
+
+## 34. Operator Company Bookings Endpoint
+
+**Decision:** A new `GET /api/bookings/operator-company` endpoint, restricted to the `OPERATOR` role, returns all bookings for the operator's company. The response shape is `{ company: { id, name }, bookings: [...] }`. Each booking includes: passenger name/phone, reference, route, departure time, seatsBooked, schedule.seatsAvailable (remaining seats), booking status, payment status. Scoping is enforced in the service layer using the operator's `companyId`.
+
+**Why:** Operators need visibility into who has booked their company's trips and how many seats remain, without needing admin access. The operator bookings view reuses existing booking/schedule data and follows the same company-scope pattern as boarding validation.
+
+**Date:** 2026-04-17
+
+---
+
+## 32. Boarding Validation Uses Existing COMPLETED Status in MVP
+
+**Decision:** Operator boarding validation looks up bookings by the existing `reference` field and, on successful validation, moves `Booking.status` from `CONFIRMED` to the existing `COMPLETED` enum value. Boarding metadata is stored on the booking via `boardedAt`, `boardedById`, and optional `boardingNote`. Operator-company scope is enforced in the service layer; `ADMIN` and `SUPER_ADMIN` can validate without company restriction.
+
+**Why:** This is the narrowest safe rollout for boarding. It avoids introducing a new `BOARDED` enum and a broader lifecycle refactor while still recording who validated boarding and when. The operator UI can present `COMPLETED` as "Boarded" for this phase.
+
+**Date:** 2026-04-17

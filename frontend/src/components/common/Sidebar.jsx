@@ -36,6 +36,7 @@ const NAV_LINKS = {
   operator: [
     { to: '/operator', label: 'Dashboard', end: true },
     { to: '/operator/boarding', label: 'Boarding Validation' },
+    { to: '/operator/bookings', label: 'Company Bookings' },
     { to: '/profile', label: 'Profile' },
   ],
 };

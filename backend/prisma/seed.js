@@ -31,10 +31,15 @@ const D3 = fmtDate(new Date(TODAY.getTime() + 4 * 86400000));  // +4 days
 async function main() {
   // ── Users ────────────────────────────────────────────────────────────────────
   const userDefs = [
-    { name: 'Test Passenger', email: 'passenger@test.rw', phone: '0781000001', role: 'PASSENGER' },
-    { name: 'Test Admin',     email: 'admin@test.rw',     phone: '0781000002', role: 'ADMIN' },
-    { name: 'Test SuperAdmin',email: 'superadmin@test.rw',phone: '0781000003', role: 'SUPER_ADMIN' },
-    { name: 'Test Operator',  email: 'operator@test.rw',  phone: '0781000004', role: 'OPERATOR' },
+    { name: 'Test Passenger',  email: 'passenger@test.rw',  phone: '0781000001', role: 'PASSENGER' },
+    { name: 'Test Admin',      email: 'admin@test.rw',      phone: '0781000002', role: 'ADMIN' },
+    { name: 'Test SuperAdmin', email: 'superadmin@test.rw', phone: '0781000003', role: 'SUPER_ADMIN' },
+    { name: 'Test Operator',   email: 'operator@test.rw',   phone: '0781000004', role: 'OPERATOR' },
+    { name: 'Horizon Operator',email: 'operator2@test.rw',  phone: '0781000005', role: 'OPERATOR' },
+    // Extra passengers for realistic boarding tests
+    { name: 'Alice Uwimana',   email: 'alice@test.rw',      phone: '0782000001', role: 'PASSENGER' },
+    { name: 'Bob Nkurunziza',  email: 'bob@test.rw',        phone: '0782000002', role: 'PASSENGER' },
+    { name: 'Carol Mukamana',  email: 'carol@test.rw',      phone: '0782000003', role: 'PASSENGER' },
   ];
 
   for (const u of userDefs) {
@@ -58,6 +63,16 @@ async function main() {
     create: { name: 'Horizon Express', licenseNo: 'RW-BUS-002', isActive: true },
   });
   console.log('Seeded companies: Volcano Express, Horizon Express');
+
+  await prisma.user.update({
+    where: { email: 'operator@test.rw' },
+    data:  { companyId: volcano.id },
+  });
+  await prisma.user.update({
+    where: { email: 'operator2@test.rw' },
+    data:  { companyId: horizon.id },
+  });
+  console.log('Assigned operators: operator@test.rw → Volcano Express, operator2@test.rw → Horizon Express');
 
   // ── Buses ────────────────────────────────────────────────────────────────────
   const bus1 = await prisma.bus.upsert({
@@ -171,8 +186,134 @@ async function main() {
   await seedSchedule({ routeId: kigGisenyi.id, busId: bus1.id, driverId: driver1.id, companyId: volcano.id, departureTime: dt(D3, '06:00'), arrivalTime: dt(D3, '08:45'), price: 4200, seatsTotal: 45, seatsAvailable: 38, status: 'SCHEDULED' });
 
   console.log('Seeded schedules');
-  console.log(`\nTest search (today):   GET /api/schedules/search?from=Kigali&to=Musanze&date=${D0}&seats=1`);
-  console.log(`Test search (+2 days): GET /api/schedules/search?from=Kigali&to=Musanze&date=${D1}&seats=1`);
+
+  // ── Boarding and booking test data ───────────────────────────────────────────
+  // Operators:
+  //   operator@test.rw   → Volcano Express
+  //   operator2@test.rw  → Horizon Express
+  //
+  // Booking matrix:
+  //   RW-DEADBEEF  passenger@test.rw  Volcano  CONFIRMED+PAID  → boardable
+  //   RW-A11CE001  alice@test.rw      Volcano  CONFIRMED+PAID  → boardable
+  //   RW-A11CE002  alice@test.rw      Volcano  PENDING         → not boardable (not confirmed)
+  //   RW-B0B00001  bob@test.rw        Volcano  CANCELLED       → not boardable
+  //   RW-B0B00002  bob@test.rw        Horizon  CONFIRMED+PAID  → visible to Horizon op only; 403 for Volcano op
+  //   RW-CA01CA01  carol@test.rw      Volcano  COMPLETED       → already boarded
+  //   RW-PEND0001  carol@test.rw      Horizon  PENDING         → visible in Horizon company bookings
+
+  const pax     = await prisma.user.findUnique({ where: { email: 'passenger@test.rw' } });
+  const alice   = await prisma.user.findUnique({ where: { email: 'alice@test.rw' } });
+  const bob     = await prisma.user.findUnique({ where: { email: 'bob@test.rw' } });
+  const carol   = await prisma.user.findUnique({ where: { email: 'carol@test.rw' } });
+  const volOp   = await prisma.user.findUnique({ where: { email: 'operator@test.rw' } });
+
+  const volSched = await prisma.schedule.findFirst({
+    where: { companyId: volcano.id, departureTime: { gt: new Date() }, seatsAvailable: { gt: 0 } },
+    orderBy: { departureTime: 'asc' },
+  });
+  const horSched = await prisma.schedule.findFirst({
+    where: { companyId: horizon.id, departureTime: { gt: new Date() }, seatsAvailable: { gt: 0 } },
+    orderBy: { departureTime: 'asc' },
+  });
+
+  if (!volSched || !horSched) {
+    console.warn('Skipped boarding bookings: could not find required schedules.');
+  } else {
+    async function seedBooking(ref, userId, scheduleId, status, paymentStatus, txId, extraData = {}) {
+      const b = await prisma.booking.upsert({
+        where:  { reference: ref },
+        update: {},
+        create: {
+          reference:   ref,
+          userId,
+          scheduleId,
+          seatsBooked: 1,
+          totalAmount: 3000,
+          status,
+          ...extraData,
+        },
+      });
+      if (paymentStatus) {
+        await prisma.payment.upsert({
+          where:  { bookingId: b.id },
+          update: {},
+          create: {
+            bookingId:     b.id,
+            amount:        3000,
+            status:        paymentStatus,
+            method:        'simulated',
+            transactionId: txId,
+            paidAt:        paymentStatus === 'PAID' ? new Date() : null,
+          },
+        });
+      }
+      return b;
+    }
+
+    // RW-DEADBEEF: original test booking (passenger → Volcano, CONFIRMED+PAID)
+    await seedBooking('RW-DEADBEEF', pax.id,   volSched.id, 'CONFIRMED', 'PAID', 'SEED-001');
+    console.log('Seeded RW-DEADBEEF  — passenger, Volcano, CONFIRMED+PAID (boardable)');
+
+    // RW-A11CE001: Alice → Volcano, CONFIRMED+PAID (boardable via phone 0782000001 or email alice@test.rw)
+    await seedBooking('RW-A11CE001', alice.id, volSched.id, 'CONFIRMED', 'PAID', 'SEED-002');
+    console.log('Seeded RW-A11CE001  — alice, Volcano, CONFIRMED+PAID (boardable)');
+
+    // RW-A11CE002: Alice → Volcano, PENDING (not boardable)
+    await seedBooking('RW-A11CE002', alice.id, volSched.id, 'PENDING',   'PENDING', 'SEED-003');
+    console.log('Seeded RW-A11CE002  — alice, Volcano, PENDING (not boardable)');
+
+    // RW-B0B00001: Bob → Volcano, CANCELLED
+    await seedBooking('RW-B0B00001', bob.id,  volSched.id, 'CANCELLED', null, null);
+    console.log('Seeded RW-B0B00001  — bob, Volcano, CANCELLED');
+
+    // RW-B0B00002: Bob → Horizon, CONFIRMED+PAID (FORBIDDEN for Volcano operator)
+    await seedBooking('RW-B0B00002', bob.id,  horSched.id, 'CONFIRMED', 'PAID', 'SEED-005');
+    console.log('Seeded RW-B0B00002  — bob, Horizon, CONFIRMED+PAID (forbidden for Volcano operator)');
+
+    // RW-CA01CA01: Carol → Volcano, already COMPLETED (boarded by volOp)
+    await seedBooking('RW-CA01CA01', carol.id, volSched.id, 'COMPLETED', 'PAID', 'SEED-006', {
+      boardedAt:    new Date(Date.now() - 30 * 60 * 1000),
+      boardedById:  volOp.id,
+      boardingNote: 'Boarded at departure gate.',
+    });
+    console.log('Seeded RW-CA01CA01  — carol, Volcano, COMPLETED (already boarded)');
+
+    // RW-PEND0001: Carol → Horizon, PENDING (visible in Horizon company bookings; not boardable)
+    await seedBooking('RW-PEND0001', carol.id, horSched.id, 'PENDING', 'PENDING', 'SEED-007');
+    console.log('Seeded RW-PEND0001  — carol, Horizon, PENDING (company bookings visibility test)');
+  }
+
+  console.log('\n── Test accounts ─────────────────────────────────────────────────────');
+  console.log('  passenger@test.rw  / Password123  → passenger');
+  console.log('  admin@test.rw      / Password123  → admin');
+  console.log('  superadmin@test.rw / Password123  → super-admin');
+  console.log('  operator@test.rw   / Password123  → Volcano Express operator');
+  console.log('  operator2@test.rw  / Password123  → Horizon Express operator');
+  console.log('  alice@test.rw      / Password123  → passenger (phone 0782000001)');
+  console.log('  bob@test.rw        / Password123  → passenger (phone 0782000002)');
+  console.log('  carol@test.rw      / Password123  → passenger (phone 0782000003)');
+
+  console.log('\n── Booking references ─────────────────────────────────────────────────');
+  console.log('  RW-DEADBEEF  passenger@test.rw  Volcano  CONFIRMED+PAID  → boardable');
+  console.log('  RW-A11CE001  alice@test.rw      Volcano  CONFIRMED+PAID  → boardable');
+  console.log('  RW-A11CE002  alice@test.rw      Volcano  PENDING         → not boardable');
+  console.log('  RW-B0B00001  bob@test.rw        Volcano  CANCELLED       → not boardable');
+  console.log('  RW-B0B00002  bob@test.rw        Horizon  CONFIRMED+PAID  → Horizon op only (403 for Volcano)');
+  console.log('  RW-CA01CA01  carol@test.rw      Volcano  COMPLETED       → already boarded');
+  console.log('  RW-PEND0001  carol@test.rw      Horizon  PENDING         → Horizon company bookings');
+
+  console.log('\n── Boarding lookup (reference only) ───────────────────────────────────');
+  console.log('  GET /api/boarding/lookup?query=RW-A11CE001   (Volcano op — found)');
+  console.log('  GET /api/boarding/lookup?query=RW-B0B00002   (Volcano op — 403)');
+  console.log('  GET /api/boarding/lookup?query=RW-B0B00002   (Horizon op — found)');
+
+  console.log('\n── Operator company bookings ──────────────────────────────────────────');
+  console.log('  GET /api/bookings/operator-company  (as operator@test.rw)  → Volcano bookings');
+  console.log('  GET /api/bookings/operator-company  (as operator2@test.rw) → Horizon bookings');
+
+  console.log(`\n── Schedule search ────────────────────────────────────────────────────`);
+  console.log(`  GET /api/schedules/search?from=Kigali&to=Musanze&date=${D0}&seats=1`);
+  console.log(`  GET /api/schedules/search?from=Kigali&to=Musanze&date=${D1}&seats=1`);
 }
 
 main()

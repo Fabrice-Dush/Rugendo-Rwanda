@@ -12,12 +12,12 @@
 
 ## Open Issues
 
-### BUG-001 — Business logic stubbed (booking/payment/admin modules)
+### BUG-001 — Business logic still stubbed in admin modules
 
 **Severity:** High  
-**Area:** Backend — bookings, payments, boarding, operators, admin modules  
-**Description:** Schedules and routes are now implemented (search, get-by-id, public listing). Booking creation, payment, boarding, admin CRUD modules still have stubbed or empty controllers.  
-**Status:** Open — next focus is booking creation.  
+**Area:** Backend — admin CRUD and dashboard modules  
+**Description:** Auth, booking, payment, and boarding flows are now implemented. Several admin-facing CRUD and dashboard modules still contain stub responses or placeholder controllers.  
+**Status:** Open — next focus is admin CRUD coverage.  
 **Discovered:** Project scaffold review
 
 ---
@@ -29,6 +29,28 @@
 **Description:** The Prisma schema has been updated (passwordHash nullable, phone unique, googleId, passwordResetToken fields added) but the migration has not been applied because MySQL was not running. The database schema is out of sync with the Prisma schema.  
 **Status:** Open — run `npx prisma migrate dev --name init` from the backend directory once MySQL is started.  
 **Discovered:** 2026-04-15
+
+---
+
+---
+
+### BUG-007 — Boarding scope enforcement used stale JWT role
+
+**Severity:** Low  
+**Area:** Backend — boarding.service.js  
+**Description:** `enforceBoardingScope` checked `actor.role` (JWT payload) instead of `actorUser.role` (fresh DB value). If a user's role was changed in the DB after token issuance, the company-scope check could be applied to a now-ADMIN user or bypassed for a now-OPERATOR user.  
+**Fix:** Changed check to `actorUser.role !== 'OPERATOR'`. Single-line fix in `boarding.service.js`.  
+**Status:** Resolved — 2026-04-17
+
+---
+
+### BUG-008 — Phone/email boarding search added in error (removed)
+
+**Severity:** Medium  
+**Area:** Backend — boarding.service.js, boarding.validator.js; Frontend — BoardingValidation.jsx, translations.js  
+**Description:** A previous batch added phone and email as valid inputs for `GET /api/boarding/lookup`. This was not part of the agreed product flow (token/reference-only boarding). It also leaked passenger contact details through a search endpoint that should only accept a known reference.  
+**Fix:** Removed `searchBoardingBookings`, reverted `lookupBoardingSchema` to enforce `RW-XXXXXXXX` format, updated UI translations in all 3 languages to reference-only text.  
+**Status:** Resolved — 2026-04-17
 
 ---
 

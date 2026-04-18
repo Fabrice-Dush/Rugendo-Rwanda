@@ -52,29 +52,30 @@ enum ScheduleStatus {
 // ─── Models ──────────────────────────────────────────────────────────────────
 
 model User {
-  id           Int      @id @default(autoincrement())
-  name         String
+  id                     Int       @id @default(autoincrement())
+  name                   String
   // Email is optional — users may register with phone only. Unique when provided.
-  email        String?  @unique
+  email                  String?   @unique
   // Nullable to support Google-auth accounts that have no password.
-  passwordHash String?
+  passwordHash           String?
   // Phone is optional but must be unique when present (used as login identifier).
-  phone        String?  @unique
-  role         Role     @default(PASSENGER)
-  isActive     Boolean  @default(true)
+  phone                  String?   @unique
+  role                   Role      @default(PASSENGER)
+  isActive               Boolean   @default(true)
   // companyId is only set for OPERATOR-role users. Null for all other roles.
-  companyId    Int?
+  companyId              Int?
   // Google OAuth identity. Null for users who registered with email/password.
-  googleId     String?  @unique
+  googleId               String?   @unique
   // Password reset token (hex string) and expiry. Null when no reset is in progress.
   passwordResetToken     String?   @unique @db.VarChar(512)
   passwordResetExpiresAt DateTime?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
 
-  bookings      Booking[]
-  refreshTokens RefreshToken[]
-  company       Company?       @relation(fields: [companyId], references: [id])
+  bookings           Booking[]
+  validatedBoardings Booking[]      @relation("BoardingValidator")
+  refreshTokens      RefreshToken[]
+  company            Company?       @relation(fields: [companyId], references: [id])
 
   @@index([companyId])
   @@map("users")
@@ -194,25 +195,29 @@ model Schedule {
 }
 
 model Booking {
-  id          Int           @id @default(autoincrement())
-  reference   String        @unique // human-readable booking reference, generated in app layer
-  userId      Int
-  scheduleId  Int
-  seatsBooked Int           @default(1)
-  totalAmount Decimal       @db.Decimal(10, 2)
-  status      BookingStatus @default(PENDING)
+  id           Int           @id @default(autoincrement())
+  reference    String        @unique // human-readable booking reference, generated in app layer
+  userId       Int
+  scheduleId   Int
+  seatsBooked  Int           @default(1)
+  totalAmount  Decimal       @db.Decimal(10, 2)
+  status       BookingStatus @default(PENDING)
   // boardedAt is set by the operator during boarding validation.
   // QR / boardingToken is Phase 2 — operators look up bookings by reference for now.
-  boardedAt   DateTime?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  boardedAt    DateTime?
+  boardedById  Int?
+  boardingNote String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  schedule Schedule @relation(fields: [scheduleId], references: [id])
-  payment  Payment?
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  boardedBy User?    @relation("BoardingValidator", fields: [boardedById], references: [id], onDelete: SetNull)
+  schedule  Schedule @relation(fields: [scheduleId], references: [id])
+  payment   Payment?
 
   @@index([userId])
   @@index([scheduleId])
+  @@index([boardedById])
   @@map("bookings")
 }
 

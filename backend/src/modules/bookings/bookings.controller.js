@@ -1,5 +1,5 @@
 import { validateCreateBooking } from './bookings.validator.js';
-import { createBooking, getMyBookings, getBookingById, cancelBooking } from './bookings.service.js';
+import { createBooking, getMyBookings, getBookingById, cancelBooking, getOperatorCompanyBookings } from './bookings.service.js';
 import { created, success, badRequest, notFound, serverError, forbidden, conflict } from '../../utils/apiResponse.js';
 
 export async function handleCreateBooking(req, res) {
@@ -44,6 +44,17 @@ export async function handleCancelBooking(req, res) {
     if (err.code === 'FORBIDDEN')     return forbidden(res, err.message);
     if (err.code === 'INVALID_STATE') return badRequest(res, err.message);
     console.error('cancelBooking error:', err);
+    return serverError(res);
+  }
+}
+
+export async function handleGetOperatorCompanyBookings(req, res) {
+  try {
+    const result = await getOperatorCompanyBookings(req.user.id);
+    return success(res, result);
+  } catch (err) {
+    if (err.code === 'FORBIDDEN') return forbidden(res, err.message);
+    console.error('getOperatorCompanyBookings error:', err);
     return serverError(res);
   }
 }

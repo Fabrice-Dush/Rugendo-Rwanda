@@ -6,6 +6,7 @@ import {
   handleGetMyBookings,
   handleGetBookingById,
   handleCancelBooking,
+  handleGetOperatorCompanyBookings,
 } from './bookings.controller.js';
 
 const router = Router();
@@ -18,6 +19,9 @@ router.get('/my', authenticate, requireRole('PASSENGER'), handleGetMyBookings);
 
 // Passenger: cancel a PENDING booking
 router.patch('/:id/cancel', authenticate, requireRole('PASSENGER'), handleCancelBooking);
+
+// Operator: list all bookings for operator's company
+router.get('/operator-company', authenticate, requireRole('OPERATOR'), handleGetOperatorCompanyBookings);
 
 // Authenticated: get booking by id (ownership enforced in controller for passengers)
 router.get('/:id', authenticate, handleGetBookingById);
