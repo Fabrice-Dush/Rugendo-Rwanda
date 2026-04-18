@@ -97,6 +97,216 @@ Format: `## N. Title` → `**Decision:**` → `**Why:**` → `**Date:**`
 
 ---
 
+## 11. Google Auth Uses ID Token Verification (Not OAuth Redirect Flow)
+
+**Decision:** Google authentication uses the Google Identity Services (GIS) JavaScript SDK on the frontend. The frontend receives a Google ID token (credential), sends it to `POST /api/auth/google`, and the backend verifies it using `google-auth-library`. No OAuth redirect dance.
+
+**Why:** React SPAs are better served by the credential callback approach than a server-side redirect flow. The GIS SDK is loaded via script tag — no frontend npm package required. The backend uses `google-auth-library` to verify the token cryptographically.
+
+**Date:** 2026-04-15
+
+---
+
+## 12. Google Auth Account Linking: Link by Email, No Duplicate Accounts
+
+**Decision:** When a user signs in with Google and an account already exists with that email (registered with password), the backend links the `googleId` to the existing account rather than creating a duplicate. This happens silently on first Google sign-in.
+
+**Why:** Creating a second account for the same email would fragment the user's booking history and cause confusion. Linking is safe because Google has verified ownership of the email.
+
+**Date:** 2026-04-15
+
+---
+
+## 13. Password Reset Token: Hex String in DB (Not JWT)
+
+**Decision:** Forgot-password tokens are random 32-byte hex strings stored in the `passwordResetToken` field on the User model with a 1-hour expiry. In development, the reset link is logged to the console. Email delivery is a Phase 2 concern.
+
+**Why:** A hex token stored in the DB is easier to invalidate (just clear the field) and doesn't require a separate secret for verification. JWT-based reset tokens cannot be invalidated before expiry if the DB isn't checked.
+
+**Date:** 2026-04-15
+
+---
+
+## 14. Role Normalization at Frontend AuthContext Boundary
+
+**Decision:** The backend DB stores roles as uppercase enums (`PASSENGER`, `ADMIN`, `SUPER_ADMIN`, `OPERATOR`). The frontend normalizes them to lowercase underscore convention (`passenger`, `admin`, `super_admin`, `operator`) inside `AuthContext.normalizeUser()`. All frontend role checks use the normalized form.
+
+**Why:** Keeps DB enum naming free from frontend conventions. The mapping is in one place — `AuthContext.jsx` — so any future change (e.g. adding a new role) only needs updating there.
+
+**Date:** 2026-04-15
+
+---
+
+## 15. No Email Verification in MVP
+
+**Decision:** Email verification is not implemented. Users can log in immediately after registration without confirming their email.
+
+**Why:** Adds friction with no email infrastructure in place. Email verification is straightforward to add later once an email service (SendGrid, Resend, etc.) is configured. It does not block the auth or booking flows.
+
+**Date:** 2026-04-15
+
+---
+
+## 16. Schedule Search Is Public (No Auth Required)
+
+**Decision:** `GET /api/schedules/search` and `GET /api/schedules/:id` are public endpoints — no authentication required. `GET /api/routes` is also public.
+
+**Why:** Passengers (and guests) must be able to browse available trips before deciding to register or log in. Requiring auth for search would break the public discovery funnel. Auth is enforced at booking creation (`POST /api/bookings`), not search.
+
+**Date:** 2026-04-15
+
+---
+
+## 17. seatsAvailable Is a Denormalized Counter on Schedule
+
+**Decision:** `Schedule.seatsAvailable` is a denormalized integer that must be decremented/incremented atomically inside a Prisma transaction when bookings are created or cancelled.
+
+**Why:** Computing available seats from booking joins on every search query is expensive and races under concurrent writes. A counter on the schedule row is the correct pattern for a booking platform. The schema comment documents this constraint.
+
+**Date:** 2026-04-15
+
+---
+
+## 18. Booking Summary Page Passes Schedule State via React Router navigate() State
+
+**Decision:** When a passenger selects a schedule and adjusts seat count on `BookingPage`, the handoff to payment passes `{ scheduleId, seats, totalAmount, schedule }` via React Router `navigate(path, { state })`. No global store is used.
+
+**Why:** The booking summary → payment flow is a linear, session-scoped navigation. Using router state avoids adding a global store and keeps the data close to the navigation event. The `BookingPage` re-fetches the schedule from the API independently so the data is always fresh.
+
+**Date:** 2026-04-15
+
+---
+
+## 19. Passenger Login Redirects to Homepage, Not Passenger Dashboard
+
+**Decision:** After successful login, passengers are sent to `/` (homepage). Operators, admins, and super-admins are sent to their respective dashboards.
+
+**Why:** Passengers are browsing for trips — they don't need to land on a dashboard. Sending them to the homepage lets them immediately continue searching. Staff roles land on their dashboard because their first action is always operational.
+
+**Date:** 2026-04-15
+
+---
+
+## 20. Avatar Dropdown in Navbar for Authenticated Users
+
+**Decision:** When a user is logged in, the navbar replaces the flat "Dashboard / Sign out" buttons with an avatar button (initials) that opens a dropdown containing Profile, Dashboard, and Logout. Applies to all roles.
+
+**Why:** Cleaner UX for a multi-role app. The avatar pattern is widely recognized; it avoids cluttering the navbar with role-specific links while still providing quick access to key actions.
+
+**Date:** 2026-04-15
+
+---
+
+## 21. Shared `/profile` Route for Non-Passenger Roles
+
+**Decision:** A `/profile` route is registered under a catch-all ProtectedRoute (any authenticated user) and renders the same ProfilePage component. Passengers still have `/passenger/profile` from their layout. Admins, operators, and super-admins use `/profile`.
+
+**Why:** Role-specific profile pages don't exist yet. Duplicating the route at `/admin/profile`, `/operator/profile`, etc. would require four layout wrappers for what is currently the same stub. A single shared route is simpler and safe to split later when profiles diverge.
+
+**Date:** 2026-04-15
+
+---
+
+## 22. Dashboard Dark Mode Default
+
+**Decision:** Dashboard layouts (Passenger, Admin, SuperAdmin, Operator) set dark mode on mount if no theme preference is stored in localStorage. If a preference exists, it is respected.
+
+**Why:** Dashboard users are staff working for extended periods. Dark mode reduces eye strain in operational contexts. The public site defaults to light. The theme toggle in the navbar always overrides this default.
+
+**Date:** 2026-04-15
+
+---
+
+## 23. Booking Creation Does Not Reserve Seats — Payment Confirmation Does
+
+**Decision:** `POST /api/bookings` creates a PENDING booking without decrementing `seatsAvailable`. The `POST /api/payments/pay` endpoint runs a Prisma transaction that: creates a PAID Payment record, updates the Booking to CONFIRMED, and decrements `Schedule.seatsAvailable`. If payment fails (simulated), a FAILED Payment is created and the Booking stays PENDING with seats unchanged.
+
+**Why:** The existing UI text already says "Seats are not reserved until payment is completed." Holding seats in PENDING state would require a timeout/cleanup job for abandoned bookings — out of scope for MVP. This approach is clean, safe, and consistent.
+
+**Date:** 2026-04-16
+
+---
+
+## 24. Simulated Payment Uses a Single POST /api/payments/pay Endpoint
+
+**Decision:** The MVP payment flow uses a single `POST /api/payments/pay` endpoint that accepts `{ bookingId, method: 'simulated' | 'fail' }`. `'simulated'` triggers a successful payment + seat decrement inside a transaction. `'fail'` creates a FAILED payment record, leaving the booking PENDING. The `'fail'` option is only exposed as a dev-testing convenience button in the UI.
+
+**Why:** A single endpoint is simpler than separate initiate/confirm steps for a fully simulated flow. The `'fail'` path lets QA and developers test the failure state without manipulating the database directly.
+
+**Date:** 2026-04-16
+
+---
+
+## 25. Booking Reference Format: RW-XXXXXXXX (8 uppercase hex chars)
+
+**Decision:** Each booking gets a unique reference in the format `RW-A3F9C21B` (prefix `RW-` plus 8 uppercase hex characters from 4 random bytes). Generated in the application layer with a collision-retry loop (max 5 attempts). The `reference` field is `@unique` in the schema.
+
+**Why:** Human-readable, easily dictated over the phone, short enough to print, and specific to Rwanda with the `RW-` prefix. Collision probability is negligible (4 billion combinations); the retry loop handles the theoretical edge case.
+
+**Date:** 2026-04-16
+
+---
+
+## 26. Payment Retry: Update Existing FAILED Record, Not Insert New
+
+**Decision:** Because `Payment.bookingId` is `@unique`, a booking can have at most one payment row. When a passenger retries payment after a FAILED attempt, the service updates the existing payment record (status → PAID, new transactionId) rather than creating a new one. A PAID payment record is never overwritten — the booking-status guard (`PENDING` required) prevents that path.
+
+**Why:** The schema constraint `@unique` on `bookingId` means inserting a second payment would fail at the DB level. Updating is the correct semantic: it's the same payment attempt, corrected.
+
+**Date:** 2026-04-16
+
+---
+
+## 27. Cancel Booking: PENDING Only, No Refund in MVP
+
+**Decision:** `PATCH /api/bookings/:id/cancel` is available only for `PENDING` bookings. Confirmed bookings cannot be cancelled via this endpoint in MVP. No refund logic is implemented. The booking status is set to `CANCELLED`; the FAILED payment record (if any) is left as a historical record.
+
+**Why:** MVP does not include refund workflows (Phase 2). Allowing cancellation only on PENDING bookings (where no seats have been decremented and no money has been collected) keeps the logic safe and clean.
+
+**Date:** 2026-04-16
+
+---
+
+## 28. Register: Email OR Phone Required (Not Both)
+
+**Decision:** Registration requires at least one of email or phone. Providing both is allowed. Where phone is provided, Rwanda validation applies (`^07(2|3|8|9)\d{7}$`). Enforced via Zod `superRefine` on backend; JS guard on frontend.
+
+**Why:** Not everyone in Rwanda has a consistent email address, but they do have a phone. Requiring both excluded valid users. Requiring at least one is the correct minimal constraint.
+
+**Date:** 2026-04-16
+
+---
+
+## 29. Duplicate Booking Prevention: Block PENDING/CONFIRMED on Same User + Schedule
+
+**Decision:** Before creating a booking, the service checks for an existing booking by the same `userId` + `scheduleId` where status is `PENDING` or `CONFIRMED`. If found, creation is rejected with a 409 and the message "You already have a booking for this trip." Bookings with status `CANCELLED` or `COMPLETED` do not block a new booking.
+
+**Why:** Accidental duplicate bookings waste seats and confuse passengers. The guard belongs in the service layer, not the route, keeping the controller thin.
+
+**Date:** 2026-04-16
+
+---
+
+## 30. Profile Update: Email and Phone Are Mutable, With Uniqueness Checks
+
+**Decision:** `PATCH /api/users/me` accepts `name`, `email`, and `phone`. Empty string means "clear the field." Uniqueness is only checked when the new value differs from the current stored value, preventing false "already in use" errors when submitting unchanged data.
+
+**Why:** The original `updateUser` only accepted `name` and `phone`, blocking users from changing their email. Uniqueness skip-on-unchanged is required to avoid confusing validation failures.
+
+**Date:** 2026-04-16
+
+---
+
+## 31. Account Deletion: Hard Delete With Cascade
+
+**Decision:** `DELETE /api/users/me` permanently deletes the user row. Cascade rules on the schema ensure `Booking` rows (and their `Payment` rows) are deleted automatically. Refresh tokens are explicitly deleted first to terminate all sessions immediately. A confirmation step (type "DELETE") is required on the frontend before the request is sent.
+
+**Why:** Since the migration has not yet run, cascade rules (`onDelete: Cascade`) were added to the schema for `Booking.user` and `Payment.booking`. This keeps hard delete clean without manual cleanup of child records. There is no soft-delete fallback — the user is informed this is permanent.
+
+**Date:** 2026-04-16
+
+---
+
 ## 10. Payments Are Simulated in MVP
 
 **Decision:** The MVP payment flow is fully simulated. No live gateway (MTN MoMo, Airtel, card) is integrated.
@@ -104,3 +314,54 @@ Format: `## N. Title` → `**Decision:**` → `**Why:**` → `**Date:**`
 **Why:** Live payment integrations require merchant accounts, KYC, compliance, and testing overhead that would delay the MVP significantly. A simulated flow lets the full booking UX be built and validated end-to-end before real money is involved.
 
 **Date:** Project start
+
+---
+
+## 33. Boarding Lookup: Token/Reference Only [SUPERSEDED by #34]
+
+**Decision:** `GET /api/boarding/lookup` accepts only a booking reference (`RW-XXXXXXXX` format). Phone and email lookup were removed. The query is validated against the reference regex before the service is called. The endpoint returns an array of 0 or 1 booking.
+
+**Why:** The product rule is that a passenger presents their booking token/reference at boarding. Operators look up that specific reference. Phone/email search was added in error; it was not part of the agreed product flow. Removing it keeps the boarding flow unambiguous and avoids leaking passenger contact details through a broader search.
+
+**Date:** 2026-04-17
+
+---
+
+## 34. Operator Company Bookings Endpoint
+
+**Decision:** A new `GET /api/bookings/operator-company` endpoint, restricted to the `OPERATOR` role, returns all bookings for the operator's company. The response shape is `{ company: { id, name }, bookings: [...] }`. Each booking includes: passenger name/phone, reference, route, departure time, seatsBooked, schedule.seatsAvailable (remaining seats), booking status, payment status. Scoping is enforced in the service layer using the operator's `companyId`.
+
+**Why:** Operators need visibility into who has booked their company's trips and how many seats remain, without needing admin access. The operator bookings view reuses existing booking/schedule data and follows the same company-scope pattern as boarding validation.
+
+**Date:** 2026-04-17
+
+---
+
+## 35. Email Sending: Nodemailer + Gmail SMTP with App Password
+
+**Decision:** Password reset emails are sent via Nodemailer using Gmail SMTP (host: `smtp.gmail.com`, port 587, STARTTLS). Authentication uses a Gmail App Password stored in `SMTP_PASS`. The sender address is the Gmail account in `SMTP_USER`. Frontend reset link uses `FRONTEND_URL` env var (default: `http://localhost:5173`).
+
+**Why:** Decision #13 deferred email delivery to "Phase 2" but the reset flow is in scope and already generates a token. Nodemailer with a Gmail App Password is the simplest working setup with no external service dependency. The transporter is lazy-initialized (singleton) to avoid creating a connection on cold start if env vars are missing.
+
+**Date:** 2026-04-18
+
+---
+
+## 32. Boarding Validation Uses Existing COMPLETED Status in MVP
+
+**Decision:** Operator boarding validation looks up bookings by the existing `reference` field and, on successful validation, moves `Booking.status` from `CONFIRMED` to the existing `COMPLETED` enum value. Boarding metadata is stored on the booking via `boardedAt`, `boardedById`, and optional `boardingNote`. Operator-company scope is enforced in the service layer; `ADMIN` and `SUPER_ADMIN` can validate without company restriction.
+
+**Why:** This is the narrowest safe rollout for boarding. It avoids introducing a new `BOARDED` enum and a broader lifecycle refactor while still recording who validated boarding and when. The operator UI can present `COMPLETED` as "Boarded" for this phase.
+
+**Date:** 2026-04-17
+
+
+## 36. Global i18n: Custom Context, 4 Languages, Flat Key Namespace
+
+**Decision:** Multilingual support uses a custom React Context (`LanguageContext`) with a single `translations.js` flat key-value map. Supported languages: English (`en`), Kinyarwanda (`rw`), French (`fr`), Kiswahili (`sw`). No external i18n library. Simple `{var}` interpolation added to `t(key, vars)`. Language persisted in `localStorage` under `rugendo-lang`.
+
+**Why:** The custom context was already in place and well-structured. Adding react-i18next would be an unnecessary dependency. Flat namespace keeps lookups simple and matches existing patterns. Kiswahili added as the fourth language per product requirements.
+
+**Date:** 2026-04-18
+
+---

@@ -25,9 +25,13 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !original._retry) {
       original._retry = true;
       try {
-        const { data } = await axios.post('/api/auth/refresh', {}, { withCredentials: true });
-        localStorage.setItem('rugendo-access-token', data.accessToken);
-        original.headers.Authorization = `Bearer ${data.accessToken}`;
+        const refreshToken = localStorage.getItem('rugendo-refresh-token');
+        const { data } = await axios.post('/api/auth/refresh', { refreshToken }, { withCredentials: true });
+        const newAccess = data.data?.accessToken || data.accessToken;
+        const newRefresh = data.data?.refreshToken || data.refreshToken;
+        localStorage.setItem('rugendo-access-token', newAccess);
+        if (newRefresh) localStorage.setItem('rugendo-refresh-token', newRefresh);
+        original.headers.Authorization = `Bearer ${newAccess}`;
         return api(original);
       } catch {
         // Refresh failed — clear session and redirect

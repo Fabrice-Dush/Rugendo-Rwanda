@@ -23,6 +23,10 @@ export function forbidden(res, message = 'Forbidden') {
   return res.status(403).json({ success: false, message });
 }
 
+export function conflict(res, message = 'Conflict') {
+  return res.status(409).json({ success: false, message });
+}
+
 export function notFound(res, message = 'Not Found') {
   return res.status(404).json({ success: false, message });
 }

@@ -1,89 +1,37 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-
-const STEPS = [
-  {
-    step: '01',
-    title: 'Create your account',
-    desc: 'Register with your email and phone number. It takes less than a minute. Your account stores your trips and personal details securely.',
-    detail: 'No booking is required to create an account. You can search and view schedules without registering.',
-    icon: '👤',
-  },
-  {
-    step: '02',
-    title: 'Search your route',
-    desc: 'Enter your departure city, destination, and travel date. Select how many passengers are travelling.',
-    detail: 'You can search routes like Kigali → Butare, Kigali → Musanze, Butare → Gisenyi, and many more. Schedules are updated in real time.',
-    icon: '🔍',
-  },
-  {
-    step: '03',
-    title: 'Choose a schedule',
-    desc: 'View all available buses for your route and date. Compare departure times, operators, bus class, available seats, and price.',
-    detail: 'Each listing shows the bus company, bus type (standard / express / luxury), and remaining seats. Select the one that fits you best.',
-    icon: '🗓️',
-  },
-  {
-    step: '04',
-    title: 'Select your seat',
-    desc: 'Pick a specific seat from the bus seat map, or let the system assign you the next available one.',
-    detail: 'Window seats, aisle seats, and rows near the front are all selectable where available.',
-    icon: '💺',
-  },
-  {
-    step: '05',
-    title: 'Pay securely',
-    desc: 'Pay using MTN Mobile Money, Airtel Money, or a bank card. The payment is confirmed instantly.',
-    detail: 'You will receive a payment confirmation on your phone immediately after the transaction completes.',
-    icon: '💳',
-  },
-  {
-    step: '06',
-    title: 'Receive your booking token',
-    desc: 'Your booking is confirmed. You receive a unique booking reference number (token) by SMS and in your account dashboard.',
-    detail: 'Present this reference at the bus park — the operator scans or checks it to validate your boarding. No printing needed.',
-    icon: '🎫',
-  },
-];
-
-const FAQS = [
-  {
-    q: 'Can I book for someone else?',
-    a: 'Yes. When booking, you can enter a different passenger name. You manage the booking through your own account.',
-  },
-  {
-    q: 'What if I miss my bus?',
-    a: 'Contact the operator directly or reach our support team. Rebooking policies depend on the operator and how much time remains before departure.',
-  },
-  {
-    q: 'How early should I arrive at the bus park?',
-    a: 'We recommend arriving at least 20 minutes before departure for boarding verification.',
-  },
-  {
-    q: 'What if the bus is cancelled?',
-    a: 'If an operator cancels a schedule, you will be notified and a refund will be processed back to your payment method.',
-  },
-  {
-    q: 'Is my booking guaranteed?',
-    a: 'Yes. Once payment is confirmed, your seat is reserved. The booking token is your proof of seat reservation.',
-  },
-];
+import { useLanguage } from '../../contexts/LanguageContext.jsx';
 
 export default function HowItWorksPage() {
+  const { t } = useLanguage();
+
+  const STEPS = [
+    { step: '01', title: t('howStep1Title'), desc: t('howStep1Desc'), detail: t('howStep1Detail'), icon: '👤' },
+    { step: '02', title: t('howStep2Title'), desc: t('howStep2Desc'), detail: t('howStep2Detail'), icon: '🔍' },
+    { step: '03', title: t('howStep3Title'), desc: t('howStep3Desc'), detail: t('howStep3Detail'), icon: '🗓️' },
+    { step: '04', title: t('howStep4Title'), desc: t('howStep4Desc'), detail: t('howStep4Detail'), icon: '💺' },
+    { step: '05', title: t('howStep5Title'), desc: t('howStep5Desc'), detail: t('howStep5Detail'), icon: '💳' },
+    { step: '06', title: t('howStep6Title'), desc: t('howStep6Desc'), detail: t('howStep6Detail'), icon: '🎫' },
+  ];
+
+  const FAQS = [
+    { q: t('howFaq1Q'), a: t('howFaq1A') },
+    { q: t('howFaq2Q'), a: t('howFaq2A') },
+    { q: t('howFaq3Q'), a: t('howFaq3A') },
+    { q: t('howFaq4Q'), a: t('howFaq4A') },
+    { q: t('howFaq5Q'), a: t('howFaq5A') },
+  ];
+
   return (
     <div>
-      {/* Header */}
       <section className="bg-hero-gradient text-white py-20">
         <div className="container-page text-center">
-          <span className="badge-accent mb-4">Simple & clear</span>
-          <h1 className="text-4xl md:text-5xl font-extrabold mb-4">How Rugendo Rwanda works</h1>
-          <p className="text-slate-300 text-lg max-w-xl mx-auto">
-            From searching a route to boarding your bus — here's exactly how the booking process works.
-          </p>
+          <span className="badge-accent mb-4">{t('howBadge')}</span>
+          <h1 className="text-4xl md:text-5xl font-extrabold mb-4">{t('howTitle')}</h1>
+          <p className="text-slate-300 text-lg max-w-xl mx-auto">{t('howSubtitle')}</p>
         </div>
       </section>
 
-      {/* Steps */}
       <section className="section">
         <div className="container-page max-w-4xl">
           <div className="space-y-6">
@@ -109,10 +57,9 @@ export default function HowItWorksPage() {
         </div>
       </section>
 
-      {/* FAQs */}
       <section className="section-muted">
         <div className="container-page max-w-3xl">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-8 text-center">Common questions</h2>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-8 text-center">{t('howFaqTitle')}</h2>
           <div className="space-y-4">
             {FAQS.map((f) => (
               <div key={f.q} className="card">
@@ -124,14 +71,13 @@ export default function HowItWorksPage() {
         </div>
       </section>
 
-      {/* CTA */}
       <section className="section text-center">
         <div className="container-page">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">Ready to book your trip?</h2>
-          <p className="text-gray-500 dark:text-slate-400 mb-6">Create an account in under a minute.</p>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">{t('howCtaTitle')}</h2>
+          <p className="text-gray-500 dark:text-slate-400 mb-6">{t('howCtaSubtitle')}</p>
           <div className="flex gap-4 justify-center">
-            <Link to="/register" className="btn-gradient">Create account</Link>
-            <Link to="/search" className="btn-secondary">Search schedules</Link>
+            <Link to="/register" className="btn-gradient">{t('howCtaCreate')}</Link>
+            <Link to="/search" className="btn-secondary">{t('howCtaSearch')}</Link>
           </div>
         </div>
       </section>

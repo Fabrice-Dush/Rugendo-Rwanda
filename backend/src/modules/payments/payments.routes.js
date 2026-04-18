@@ -1,15 +1,11 @@
 import { Router } from 'express';
 import { authenticate } from '../../middlewares/auth.middleware.js';
+import { requireRole } from '../../middlewares/role.middleware.js';
+import { handlePay } from './payments.controller.js';
 
 const router = Router();
 
-// Simulated payment initiation
-router.post('/initiate', authenticate, (_req, res) => {
-  res.json({ success: true, message: 'Payment initiation — TODO (simulated)' });
-});
-
-router.post('/confirm', authenticate, (_req, res) => {
-  res.json({ success: true, message: 'Payment confirmation — TODO (simulated)' });
-});
+// Passenger initiates (simulated) payment for a booking
+router.post('/pay', authenticate, requireRole('PASSENGER'), handlePay);
 
 export default router;

@@ -12,6 +12,7 @@ import OperatorLayout from '../layouts/OperatorLayout.jsx';
 // Public pages
 import HomePage from '../pages/public/HomePage.jsx';
 import SearchResultsPage from '../pages/public/SearchResultsPage.jsx';
+import SearchTripsPage from '../pages/public/SearchTripsPage.jsx';
 import AboutPage from '../pages/public/AboutPage.jsx';
 import ContactPage from '../pages/public/ContactPage.jsx';
 import HowItWorksPage from '../pages/public/HowItWorksPage.jsx';
@@ -31,6 +32,8 @@ import ResetPasswordPage from '../pages/auth/ResetPasswordPage.jsx';
 // Passenger pages
 import PassengerDashboard from '../pages/passenger/PassengerDashboard.jsx';
 import BookingPage from '../pages/passenger/BookingPage.jsx';
+import PaymentPage from '../pages/passenger/PaymentPage.jsx';
+import BookingConfirmationPage from '../pages/passenger/BookingConfirmationPage.jsx';
 import MyBookingsPage from '../pages/passenger/MyBookingsPage.jsx';
 import ProfilePage from '../pages/passenger/ProfilePage.jsx';
 
@@ -51,6 +54,7 @@ import ManageUsers from '../pages/superAdmin/ManageUsers.jsx';
 // Operator pages
 import OperatorDashboard from '../pages/operator/OperatorDashboard.jsx';
 import BoardingValidation from '../pages/operator/BoardingValidation.jsx';
+import OperatorBookings from '../pages/operator/OperatorBookings.jsx';
 
 // Route guards
 import ProtectedRoute from '../components/common/ProtectedRoute.jsx';
@@ -63,6 +67,7 @@ export default function AppRouter() {
       <Route element={<PublicLayout />}>
         <Route path="/"                element={<HomePage />} />
         <Route path="/search"          element={<SearchResultsPage />} />
+        <Route path="/search-trips"    element={<SearchTripsPage />} />
         <Route path="/about"           element={<AboutPage />} />
         <Route path="/contact"         element={<ContactPage />} />
         <Route path="/how-it-works"    element={<HowItWorksPage />} />
@@ -81,18 +86,25 @@ export default function AppRouter() {
         <Route path="/reset-password"  element={<ResetPasswordPage />} />
       </Route>
 
+      {/* ── Shared profile route (all authenticated roles) ────── */}
+      <Route element={<ProtectedRoute allowedRoles={[]} />}>
+        <Route path="/profile" element={<ProfilePage />} />
+      </Route>
+
       {/* ── Passenger routes ──────────────────────────────────── */}
       <Route element={<ProtectedRoute allowedRoles={['passenger']} />}>
         <Route element={<PassengerLayout />}>
-          <Route path="/passenger"           element={<PassengerDashboard />} />
-          <Route path="/passenger/book"      element={<BookingPage />} />
-          <Route path="/passenger/bookings"  element={<MyBookingsPage />} />
-          <Route path="/passenger/profile"   element={<ProfilePage />} />
+          <Route path="/passenger"                  element={<PassengerDashboard />} />
+          <Route path="/passenger/book"           element={<BookingPage />} />
+          <Route path="/passenger/payment"        element={<PaymentPage />} />
+          <Route path="/passenger/booking-confirm" element={<BookingConfirmationPage />} />
+          <Route path="/passenger/bookings"       element={<MyBookingsPage />} />
+          <Route path="/passenger/profile"        element={<ProfilePage />} />
         </Route>
       </Route>
 
       {/* ── Admin routes ──────────────────────────────────────── */}
-      <Route element={<ProtectedRoute allowedRoles={['admin', 'super-admin']} />}>
+      <Route element={<ProtectedRoute allowedRoles={['admin', 'super_admin']} />}>
         <Route element={<AdminLayout />}>
           <Route path="/admin"               element={<AdminDashboard />} />
           <Route path="/admin/schedules"     element={<ManageSchedules />} />
@@ -104,7 +116,7 @@ export default function AppRouter() {
       </Route>
 
       {/* ── Super-Admin routes ────────────────────────────────── */}
-      <Route element={<ProtectedRoute allowedRoles={['super-admin']} />}>
+      <Route element={<ProtectedRoute allowedRoles={['super_admin']} />}>
         <Route element={<SuperAdminLayout />}>
           <Route path="/super-admin"             element={<SuperAdminDashboard />} />
           <Route path="/super-admin/operators"   element={<ManageOperators />} />
@@ -116,8 +128,10 @@ export default function AppRouter() {
       {/* ── Operator routes ───────────────────────────────────── */}
       <Route element={<ProtectedRoute allowedRoles={['operator']} />}>
         <Route element={<OperatorLayout />}>
-          <Route path="/operator"          element={<OperatorDashboard />} />
-          <Route path="/operator/boarding" element={<BoardingValidation />} />
+          <Route path="/operator"           element={<OperatorDashboard />} />
+          <Route path="/operator/boarding"  element={<BoardingValidation />} />
+          <Route path="/operator/bookings"  element={<OperatorBookings />} />
+          <Route path="/operator/profile"   element={<ProfilePage />} />
         </Route>
       </Route>
 
