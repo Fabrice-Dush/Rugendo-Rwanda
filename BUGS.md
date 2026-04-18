@@ -12,6 +12,16 @@
 
 ## Open Issues
 
+### BUG-009 — Forgot-password never sent email (console-only stub)
+
+**Severity:** High
+**Area:** Backend — auth.service.js / mail
+**Description:** `forgotPassword` generated a reset token and logged it to the console in development only. No email was ever sent. No `nodemailer` or SMTP utility existed.
+**Fix:** Created `backend/src/utils/mail.utils.js` with a Nodemailer Gmail SMTP transporter. Updated `auth.service.js` to call `sendPasswordResetEmail`. Added `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `FRONTEND_URL` env vars to `env.js`, `.env`, and `.env.example`. Updated DECISIONS.md (decision #35). Nodemailer added as a dependency.
+**Status:** Resolved — 2026-04-18
+
+---
+
 ### BUG-001 — Business logic still stubbed in admin modules
 
 **Severity:** High  

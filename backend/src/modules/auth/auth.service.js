@@ -4,6 +4,7 @@ import prisma from '../../lib/prisma.js';
 import { hashPassword, comparePassword } from '../../utils/bcrypt.utils.js';
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../../utils/jwt.utils.js';
 import { env } from '../../config/env.js';
+import { sendPasswordResetEmail } from '../../utils/mail.utils.js';
 
 const REFRESH_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days in ms
 const RESET_TOKEN_TTL_MS = 60 * 60 * 1000;        // 1 hour in ms
@@ -157,9 +158,11 @@ export async function forgotPassword({ email }) {
     },
   });
 
-  // In production this would be an email. For now, log it so dev/testing works.
-  if (env.nodeEnv === 'development') {
-    console.log(`[DEV] Password reset link: http://localhost:5173/reset-password?token=${resetToken}`);
+  try {
+    await sendPasswordResetEmail({ to: user.email, resetToken });
+  } catch (mailErr) {
+    // Log mail failure but do not expose it to the caller — the token is already saved.
+    console.error('[mail] Failed to send password reset email:', mailErr.message);
   }
 }
 

@@ -337,6 +337,16 @@ Format: `## N. Title` → `**Decision:**` → `**Why:**` → `**Date:**`
 
 ---
 
+## 35. Email Sending: Nodemailer + Gmail SMTP with App Password
+
+**Decision:** Password reset emails are sent via Nodemailer using Gmail SMTP (host: `smtp.gmail.com`, port 587, STARTTLS). Authentication uses a Gmail App Password stored in `SMTP_PASS`. The sender address is the Gmail account in `SMTP_USER`. Frontend reset link uses `FRONTEND_URL` env var (default: `http://localhost:5173`).
+
+**Why:** Decision #13 deferred email delivery to "Phase 2" but the reset flow is in scope and already generates a token. Nodemailer with a Gmail App Password is the simplest working setup with no external service dependency. The transporter is lazy-initialized (singleton) to avoid creating a connection on cold start if env vars are missing.
+
+**Date:** 2026-04-18
+
+---
+
 ## 32. Boarding Validation Uses Existing COMPLETED Status in MVP
 
 **Decision:** Operator boarding validation looks up bookings by the existing `reference` field and, on successful validation, moves `Booking.status` from `CONFIRMED` to the existing `COMPLETED` enum value. Boarding metadata is stored on the booking via `boardedAt`, `boardedById`, and optional `boardingNote`. Operator-company scope is enforced in the service layer; `ADMIN` and `SUPER_ADMIN` can validate without company restriction.
