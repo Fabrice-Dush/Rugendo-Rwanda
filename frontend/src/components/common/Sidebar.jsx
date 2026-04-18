@@ -6,7 +6,7 @@ const PROFILE_PATH = {
   passenger:  '/passenger/profile',
   admin:      '/profile',
   super_admin:'/profile',
-  operator:   '/profile',
+  operator:   '/operator/profile',
 };
 
 const NAV_LINKS = {
@@ -37,7 +37,7 @@ const NAV_LINKS = {
     { to: '/operator', label: 'Dashboard', end: true },
     { to: '/operator/boarding', label: 'Boarding Validation' },
     { to: '/operator/bookings', label: 'Company Bookings' },
-    { to: '/profile', label: 'Profile' },
+    { to: '/operator/profile', label: 'Profile' },
   ],
 };
 

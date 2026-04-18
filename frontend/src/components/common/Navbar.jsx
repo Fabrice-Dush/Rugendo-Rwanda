@@ -22,7 +22,7 @@ const ROLE_PROFILE = {
   passenger:  '/passenger/profile',
   admin:      '/profile',
   super_admin:'/profile',
-  operator:   '/profile',
+  operator:   '/operator/profile',
 };
 
 function getInitials(name) {

@@ -131,6 +131,7 @@ export default function AppRouter() {
           <Route path="/operator"           element={<OperatorDashboard />} />
           <Route path="/operator/boarding"  element={<BoardingValidation />} />
           <Route path="/operator/bookings"  element={<OperatorBookings />} />
+          <Route path="/operator/profile"   element={<ProfilePage />} />
         </Route>
       </Route>
 
