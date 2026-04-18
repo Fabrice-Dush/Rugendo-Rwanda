@@ -1,20 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext.jsx';
+import { useLanguage } from '../../contexts/LanguageContext.jsx';
 import { userService } from '../../services/userService.js';
 
 const RWANDA_PHONE_RE = /^07(2|3|8|9)\d{7}$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-function roleLabel(role) {
-  const map = {
-    passenger:   'Passenger',
-    admin:       'Admin',
-    super_admin: 'Super Admin',
-    operator:    'Operator',
-  };
-  return map[role] || role;
-}
 
 function formatDate(iso) {
   if (!iso) return '—';
@@ -25,24 +16,33 @@ function formatDate(iso) {
 
 export default function ProfilePage() {
   const { user: authUser, logout, refreshUser } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
 
   const [profile,       setProfile]      = useState(null);
   const [loadError,     setLoadError]    = useState('');
   const [loading,       setLoading]      = useState(true);
 
-  // Edit state
   const [editing,       setEditing]      = useState(false);
   const [form,          setForm]         = useState({ name: '', email: '', phone: '' });
   const [saving,        setSaving]       = useState(false);
   const [saveError,     setSaveError]    = useState('');
   const [saveSuccess,   setSaveSuccess]  = useState('');
 
-  // Delete state
   const [showDelete,    setShowDelete]   = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState('');
   const [deleting,      setDeleting]     = useState(false);
   const [deleteError,   setDeleteError]  = useState('');
+
+  const roleLabel = (role) => {
+    const map = {
+      passenger:   t('profileRolePassenger'),
+      admin:       t('profileRoleAdmin'),
+      super_admin: t('profileRoleSuperAdmin'),
+      operator:    t('profileRoleOperator'),
+    };
+    return map[role] || role;
+  };
 
   useEffect(() => {
     userService.getProfile()
@@ -54,7 +54,7 @@ export default function ProfilePage() {
           phone: res.data.phone || '',
         });
       })
-      .catch(() => setLoadError('Could not load profile. Please try again.'))
+      .catch(() => setLoadError(t('profileLoadError')))
       .finally(() => setLoading(false));
   }, []);
 
@@ -69,16 +69,15 @@ export default function ProfilePage() {
     setSaveError('');
     setSaveSuccess('');
 
-    // Frontend validation
     const hasEmail = form.email.trim() !== '';
     const hasPhone = form.phone.trim() !== '';
 
     if (hasEmail && !EMAIL_RE.test(form.email.trim())) {
-      setSaveError('Please enter a valid email address.');
+      setSaveError(t('profileEmailInvalid'));
       return;
     }
     if (hasPhone && !RWANDA_PHONE_RE.test(form.phone.trim())) {
-      setSaveError('Phone must be a valid Rwanda number (e.g. 0781234567).');
+      setSaveError(t('profilePhoneInvalid'));
       return;
     }
 
@@ -90,13 +89,12 @@ export default function ProfilePage() {
         phone: form.phone.trim() || '',
       });
       setProfile(res.data);
-      setSaveSuccess('Profile updated successfully.');
+      setSaveSuccess(t('profileUpdated'));
       setEditing(false);
-      // Refresh auth context so navbar name updates
       if (refreshUser) await refreshUser();
     } catch (err) {
       setSaveError(
-        err?.response?.data?.message || 'Could not update profile. Please try again.'
+        err?.response?.data?.message || t('profileUpdateError')
       );
     } finally {
       setSaving(false);
@@ -125,12 +123,11 @@ export default function ProfilePage() {
       await userService.deleteAccount();
     } catch (err) {
       setDeleteError(
-        err?.response?.data?.message || 'Could not delete account. Please try again.'
+        err?.response?.data?.message || t('profileDeleteError')
       );
       setDeleting(false);
       return;
     }
-    // Account deleted — clear session regardless of whether the backend logout call succeeds
     try {
       await logout();
     } catch {
@@ -143,7 +140,7 @@ export default function ProfilePage() {
     return (
       <div className="flex flex-col items-center py-20 gap-4">
         <div className="w-8 h-8 border-4 border-brand-600 border-t-transparent rounded-full animate-spin" />
-        <p className="text-gray-500 dark:text-slate-400 text-sm">Loading profile…</p>
+        <p className="text-gray-500 dark:text-slate-400 text-sm">{t('profileLoadingText')}</p>
       </div>
     );
   }
@@ -151,7 +148,7 @@ export default function ProfilePage() {
   if (loadError || !profile) {
     return (
       <div className="max-w-lg mx-auto py-16 text-center">
-        <p className="text-red-500 dark:text-red-400">{loadError || 'Profile unavailable.'}</p>
+        <p className="text-red-500 dark:text-red-400">{loadError || t('profileUnavailable')}</p>
       </div>
     );
   }
@@ -159,15 +156,11 @@ export default function ProfilePage() {
   return (
     <div className="max-w-2xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">My Profile</h1>
-        <p className="text-gray-500 dark:text-slate-400 text-sm mt-1">
-          View and manage your account information.
-        </p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('profileTitle')}</h1>
+        <p className="text-gray-500 dark:text-slate-400 text-sm mt-1">{t('profileSubtitle')}</p>
       </div>
 
-      {/* ── Profile card ── */}
       <div className="card mb-6">
-        {/* Avatar + basic info */}
         <div className="flex items-center gap-4 mb-6">
           <div className="w-14 h-14 rounded-full bg-brand-600 flex items-center justify-center text-white text-xl font-bold shrink-0">
             {profile.name?.charAt(0)?.toUpperCase() || '?'}
@@ -180,28 +173,27 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Info grid */}
         {!editing && (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm mb-6">
               <div>
-                <p className="text-gray-400 dark:text-slate-500 mb-0.5">Full name</p>
+                <p className="text-gray-400 dark:text-slate-500 mb-0.5">{t('profileFullName')}</p>
                 <p className="font-medium text-gray-900 dark:text-white">{profile.name || '—'}</p>
               </div>
               <div>
-                <p className="text-gray-400 dark:text-slate-500 mb-0.5">Email address</p>
+                <p className="text-gray-400 dark:text-slate-500 mb-0.5">{t('profileEmailLabel')}</p>
                 <p className="font-medium text-gray-900 dark:text-white break-all">
-                  {profile.email || <span className="text-gray-400 dark:text-slate-500 italic">Not set</span>}
+                  {profile.email || <span className="text-gray-400 dark:text-slate-500 italic">{t('profileNotSet')}</span>}
                 </p>
               </div>
               <div>
-                <p className="text-gray-400 dark:text-slate-500 mb-0.5">Phone number</p>
+                <p className="text-gray-400 dark:text-slate-500 mb-0.5">{t('profilePhoneLabel')}</p>
                 <p className="font-medium text-gray-900 dark:text-white">
-                  {profile.phone || <span className="text-gray-400 dark:text-slate-500 italic">Not set</span>}
+                  {profile.phone || <span className="text-gray-400 dark:text-slate-500 italic">{t('profileNotSet')}</span>}
                 </p>
               </div>
               <div>
-                <p className="text-gray-400 dark:text-slate-500 mb-0.5">Member since</p>
+                <p className="text-gray-400 dark:text-slate-500 mb-0.5">{t('profileMemberSince')}</p>
                 <p className="font-medium text-gray-900 dark:text-white">{formatDate(profile.createdAt)}</p>
               </div>
             </div>
@@ -215,12 +207,11 @@ export default function ProfilePage() {
               onClick={() => { setEditing(true); setSaveSuccess(''); }}
               className="btn-gradient"
             >
-              Edit profile
+              {t('profileEditBtn')}
             </button>
           </>
         )}
 
-        {/* Edit form */}
         {editing && (
           <form onSubmit={handleSave} className="space-y-4">
             {saveError && (
@@ -230,20 +221,20 @@ export default function ProfilePage() {
             )}
 
             <div>
-              <label className="label">Full name</label>
+              <label className="label">{t('profileFullName')}</label>
               <input
                 type="text"
                 name="name"
                 value={form.name}
                 onChange={handleChange}
-                placeholder="Your name"
+                placeholder={t('profileYourName')}
                 className="input"
               />
             </div>
 
             <div>
               <label className="label">
-                Email address <span className="text-xs text-gray-400 dark:text-slate-500 font-normal">(optional if phone is set)</span>
+                {t('profileEmailLabel')} <span className="text-xs text-gray-400 dark:text-slate-500 font-normal">{t('profileEmailOptional')}</span>
               </label>
               <input
                 type="email"
@@ -257,7 +248,7 @@ export default function ProfilePage() {
 
             <div>
               <label className="label">
-                Phone number <span className="text-xs text-gray-400 dark:text-slate-500 font-normal">(optional if email is set)</span>
+                {t('profilePhoneLabel')} <span className="text-xs text-gray-400 dark:text-slate-500 font-normal">{t('profilePhoneOptional')}</span>
               </label>
               <input
                 type="tel"
@@ -267,9 +258,7 @@ export default function ProfilePage() {
                 placeholder="0781234567"
                 className="input"
               />
-              <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">
-                Rwanda numbers: 072, 073, 078, or 079 followed by 7 digits.
-              </p>
+              <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">{t('profilePhoneHint')}</p>
             </div>
 
             <div className="flex gap-3 pt-1">
@@ -279,7 +268,7 @@ export default function ProfilePage() {
                 disabled={saving}
                 className="btn-secondary flex-1"
               >
-                Cancel
+                {t('cancel')}
               </button>
               <button
                 type="submit"
@@ -289,19 +278,16 @@ export default function ProfilePage() {
                 {saving && (
                   <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 )}
-                {saving ? 'Saving…' : 'Save changes'}
+                {saving ? t('profileSaving') : t('profileSaveChanges')}
               </button>
             </div>
           </form>
         )}
       </div>
 
-      {/* ── Danger zone ── */}
       <div className="card border border-red-200 dark:border-red-900/50">
-        <h2 className="text-base font-semibold text-red-600 dark:text-red-400 mb-1">Danger zone</h2>
-        <p className="text-sm text-gray-500 dark:text-slate-400 mb-4">
-          Permanently delete your account and all associated data. This action cannot be undone.
-        </p>
+        <h2 className="text-base font-semibold text-red-600 dark:text-red-400 mb-1">{t('profileDangerZone')}</h2>
+        <p className="text-sm text-gray-500 dark:text-slate-400 mb-4">{t('profileDangerDesc')}</p>
 
         {!showDelete && (
           <button
@@ -309,14 +295,16 @@ export default function ProfilePage() {
             onClick={() => setShowDelete(true)}
             className="px-4 py-2 rounded-lg border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 text-sm font-medium hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
           >
-            Delete my account
+            {t('profileDeleteBtn')}
           </button>
         )}
 
         {showDelete && (
           <div className="space-y-3">
             <p className="text-sm text-gray-700 dark:text-slate-300">
-              To confirm, type <strong className="font-mono text-red-600 dark:text-red-400">DELETE</strong> in the box below and click the button.
+              {t('profileDeleteConfirm').replace('DELETE', '')}
+              <strong className="font-mono text-red-600 dark:text-red-400">DELETE</strong>
+              {' '}in the box below and click the button.
             </p>
 
             {deleteError && (
@@ -327,7 +315,7 @@ export default function ProfilePage() {
               type="text"
               value={deleteConfirm}
               onChange={(e) => { setDeleteConfirm(e.target.value); setDeleteError(''); }}
-              placeholder="Type DELETE to confirm"
+              placeholder={t('profileDeleteTypePlaceholder')}
               className="input font-mono"
             />
 
@@ -338,7 +326,7 @@ export default function ProfilePage() {
                 disabled={deleting}
                 className="btn-secondary flex-1"
               >
-                Cancel
+                {t('cancel')}
               </button>
               <button
                 type="button"
@@ -349,7 +337,7 @@ export default function ProfilePage() {
                 {deleting && (
                   <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 )}
-                {deleting ? 'Deleting…' : 'Permanently delete account'}
+                {deleting ? t('profileDeleting') : t('profileDeleteSubmitBtn')}
               </button>
             </div>
           </div>

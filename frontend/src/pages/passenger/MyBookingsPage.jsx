@@ -1,47 +1,57 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { bookingService } from '../../services/bookingService.js';
+import { useLanguage } from '../../contexts/LanguageContext.jsx';
 
-function formatTime(isoString) {
+const LOCALE_BY_LANGUAGE = { en: 'en-RW', rw: 'rw-RW', fr: 'fr-FR', sw: 'sw' };
+
+function formatTime(isoString, locale) {
   if (!isoString) return '--:--';
-  return new Date(isoString).toLocaleTimeString('en-RW', {
+  return new Date(isoString).toLocaleTimeString(locale, {
     hour: '2-digit', minute: '2-digit', hour12: false,
   });
 }
 
-function formatDate(isoString) {
+function formatDate(isoString, locale) {
   if (!isoString) return '';
-  return new Date(isoString).toLocaleDateString('en-RW', {
+  return new Date(isoString).toLocaleDateString(locale, {
     year: 'numeric', month: 'short', day: 'numeric',
   });
 }
 
-function StatusBadge({ status }) {
+function StatusBadge({ status, t }) {
   const variants = {
     CONFIRMED: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
     PENDING:   'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400',
     CANCELLED: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400',
     COMPLETED: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
   };
+  const labelMap = {
+    CONFIRMED: t('bookingStatusConfirmed'),
+    PENDING:   t('bookingStatusPending'),
+    CANCELLED: t('bookingStatusCancelled'),
+    COMPLETED: t('bookingStatusCompleted'),
+  };
   const cls = variants[status] || 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-slate-400';
   return (
     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wide ${cls}`}>
-      {status}
+      {labelMap[status] || status}
     </span>
   );
 }
 
 function BookingCard({ booking, onRefresh }) {
   const navigate = useNavigate();
+  const { t, language } = useLanguage();
+  const locale = LOCALE_BY_LANGUAGE[language] || 'en-RW';
   const sch   = booking.schedule;
   const route = sch?.route;
 
-  const [actionLoading, setActionLoading] = useState(null); // 'pay' | 'cancel'
+  const [actionLoading, setActionLoading] = useState(null);
   const [actionError,   setActionError]   = useState(null);
 
-  // A booking is actionable (can retry or cancel) only when PENDING
-  const isPending   = booking.status === 'PENDING';
-  const payFailed   = booking.payment?.status === 'FAILED';
+  const isPending = booking.status === 'PENDING';
+  const payFailed = booking.payment?.status === 'FAILED';
 
   async function handleRetryPayment() {
     setActionError(null);
@@ -52,8 +62,7 @@ function BookingCard({ booking, onRefresh }) {
         state: { booking: res.data.booking, payment: res.data.payment },
       });
     } catch (err) {
-      const msg = err?.response?.data?.message || 'Payment could not be processed. Please try again.';
-      setActionError(msg);
+      setActionError(err?.response?.data?.message || t('myBookingsErrorPay'));
     } finally {
       setActionLoading(null);
     }
@@ -66,60 +75,59 @@ function BookingCard({ booking, onRefresh }) {
       await bookingService.cancelBooking(booking.id);
       onRefresh();
     } catch (err) {
-      const msg = err?.response?.data?.message || 'Could not cancel booking. Please try again.';
-      setActionError(msg);
+      setActionError(err?.response?.data?.message || t('myBookingsErrorCancel'));
     } finally {
       setActionLoading(null);
     }
   }
 
+  const seatsLabel = booking.seatsBooked > 1 ? t('myBookingsSeats') : t('myBookingsSeat');
+
   return (
     <div className="card hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between gap-3 mb-3">
         <div>
-          <p className="text-xs text-gray-400 dark:text-slate-500 mb-0.5">Booking reference</p>
+          <p className="text-xs text-gray-400 dark:text-slate-500 mb-0.5">{t('myBookingsRef')}</p>
           <p className="font-bold tracking-widest text-brand-700 dark:text-brand-300 text-sm">
             {booking.reference}
           </p>
         </div>
-        <StatusBadge status={booking.status} />
+        <StatusBadge status={booking.status} t={t} />
       </div>
 
       {sch && route && (
         <div className="flex items-center gap-3 mb-3">
           <div className="text-center min-w-[60px]">
-            <p className="text-lg font-bold text-gray-900 dark:text-white">{formatTime(sch.departureTime)}</p>
+            <p className="text-lg font-bold text-gray-900 dark:text-white">{formatTime(sch.departureTime, locale)}</p>
             <p className="text-xs text-gray-500 dark:text-slate-400">{route.origin}</p>
           </div>
           <div className="flex-1 h-px bg-[#e8e3ff] dark:bg-[#2d1a5e] relative">
             <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-brand-500" />
           </div>
           <div className="text-center min-w-[60px]">
-            <p className="text-lg font-bold text-gray-900 dark:text-white">{formatTime(sch.arrivalTime)}</p>
+            <p className="text-lg font-bold text-gray-900 dark:text-white">{formatTime(sch.arrivalTime, locale)}</p>
             <p className="text-xs text-gray-500 dark:text-slate-400">{route.destination}</p>
           </div>
         </div>
       )}
 
       <div className="flex items-center justify-between text-sm text-gray-500 dark:text-slate-400">
-        <span>{sch ? formatDate(sch.departureTime) : formatDate(booking.createdAt)}</span>
-        <span>{booking.seatsBooked} seat{booking.seatsBooked > 1 ? 's' : ''} · RWF {parseFloat(booking.totalAmount).toLocaleString()}</span>
+        <span>{sch ? formatDate(sch.departureTime, locale) : formatDate(booking.createdAt, locale)}</span>
+        <span>{booking.seatsBooked} {seatsLabel} · RWF {parseFloat(booking.totalAmount).toLocaleString()}</span>
       </div>
 
       {payFailed && (
         <div className="mt-3 pt-3 border-t border-[#f0ebff] dark:border-[#2d1a5e] text-xs text-red-600 dark:text-red-400">
-          Payment failed — booking is still pending.
+          {t('myBookingsPayFailed')}
         </div>
       )}
 
-      {/* Action error */}
       {actionError && (
         <div className="mt-2 text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg px-3 py-2">
           {actionError}
         </div>
       )}
 
-      {/* Booking actions — only for PENDING bookings */}
       {isPending && (
         <div className="mt-4 pt-3 border-t border-[#f0ebff] dark:border-[#2d1a5e] flex gap-2 flex-wrap">
           <button
@@ -131,7 +139,9 @@ function BookingCard({ booking, onRefresh }) {
             {actionLoading === 'pay' && (
               <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
             )}
-            {actionLoading === 'pay' ? 'Processing…' : (payFailed ? 'Retry Payment' : 'Pay Now')}
+            {actionLoading === 'pay'
+              ? t('myBookingsProcessing')
+              : (payFailed ? t('myBookingsRetryPay') : t('myBookingsPayNow'))}
           </button>
           <button
             type="button"
@@ -142,7 +152,7 @@ function BookingCard({ booking, onRefresh }) {
             {actionLoading === 'cancel' && (
               <span className="w-3 h-3 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
             )}
-            {actionLoading === 'cancel' ? 'Cancelling…' : 'Cancel Booking'}
+            {actionLoading === 'cancel' ? t('myBookingsCancelling') : t('myBookingsCancelBooking')}
           </button>
         </div>
       )}
@@ -151,6 +161,7 @@ function BookingCard({ booking, onRefresh }) {
 }
 
 export default function MyBookingsPage() {
+  const { t } = useLanguage();
   const [bookings, setBookings] = useState([]);
   const [loading,  setLoading]  = useState(true);
   const [error,    setError]    = useState(null);
@@ -160,7 +171,7 @@ export default function MyBookingsPage() {
     setError(null);
     bookingService.getMyBookings()
       .then((res) => setBookings(res.data || []))
-      .catch(() => setError('Could not load bookings. Please try again.'))
+      .catch(() => setError(t('myBookingsError')))
       .finally(() => setLoading(false));
   }, []);
 
@@ -180,7 +191,7 @@ export default function MyBookingsPage() {
     return (
       <div className="flex flex-col items-center py-20 gap-4">
         <div className="w-10 h-10 border-4 border-brand-600 border-t-transparent rounded-full animate-spin" />
-        <p className="text-gray-500 dark:text-slate-400">Loading your bookings…</p>
+        <p className="text-gray-500 dark:text-slate-400">{t('myBookingsLoading')}</p>
       </div>
     );
   }
@@ -190,13 +201,7 @@ export default function MyBookingsPage() {
       <div className="text-center py-16">
         <div className="text-5xl mb-4">⚠️</div>
         <p className="text-gray-500 dark:text-slate-400 mb-4">{error}</p>
-        <button
-          type="button"
-          onClick={load}
-          className="btn-secondary"
-        >
-          Retry
-        </button>
+        <button type="button" onClick={load} className="btn-secondary">{t('myBookingsRetry')}</button>
       </div>
     );
   }
@@ -204,30 +209,25 @@ export default function MyBookingsPage() {
   return (
     <div className="max-w-2xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">My Bookings</h1>
-        <Link to="/" className="btn-gradient text-sm px-4 py-2">
-          + Book a trip
-        </Link>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('myBookingsTitle')}</h1>
+        <Link to="/" className="btn-gradient text-sm px-4 py-2">{t('myBookingsBookTrip')}</Link>
       </div>
 
       {bookings.length === 0 ? (
         <div className="text-center py-16">
           <div className="text-6xl mb-4">🎟️</div>
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No bookings yet</h2>
-          <p className="text-gray-500 dark:text-slate-400 mb-6">
-            When you book a trip, it will appear here.
-          </p>
-          <Link to="/" className="btn-gradient">Search trips</Link>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">{t('myBookingsEmpty')}</h2>
+          <p className="text-gray-500 dark:text-slate-400 mb-6">{t('myBookingsEmptyHint')}</p>
+          <Link to="/" className="btn-gradient">{t('myBookingsSearchTrips')}</Link>
         </div>
       ) : (
         <>
-          {/* Upcoming */}
           <section className="mb-8">
             <h2 className="text-sm font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide mb-3">
-              Upcoming ({upcoming.length})
+              {t('myBookingsUpcoming', { n: upcoming.length })}
             </h2>
             {upcoming.length === 0 ? (
-              <p className="text-gray-400 dark:text-slate-500 text-sm py-4">No upcoming trips.</p>
+              <p className="text-gray-400 dark:text-slate-500 text-sm py-4">{t('myBookingsNoUpcoming')}</p>
             ) : (
               <div className="flex flex-col gap-3">
                 {upcoming.map((b) => <BookingCard key={b.id} booking={b} onRefresh={load} />)}
@@ -235,11 +235,10 @@ export default function MyBookingsPage() {
             )}
           </section>
 
-          {/* Past / Completed */}
           {past.length > 0 && (
             <section>
               <h2 className="text-sm font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide mb-3">
-                Past trips ({past.length})
+                {t('myBookingsPast', { n: past.length })}
               </h2>
               <div className="flex flex-col gap-3">
                 {past.map((b) => <BookingCard key={b.id} booking={b} onRefresh={load} />)}

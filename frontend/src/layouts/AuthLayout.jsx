@@ -1,7 +1,17 @@
 import React from 'react';
 import { Link, Outlet } from 'react-router-dom';
+import { useLanguage } from '../contexts/LanguageContext.jsx';
 
 export default function AuthLayout() {
+  const { t } = useLanguage();
+
+  const FEATURES = [
+    t('authPanelFeature1'),
+    t('authPanelFeature2'),
+    t('authPanelFeature3'),
+    t('authPanelFeature4'),
+  ];
+
   return (
     <div className="min-h-screen flex bg-white dark:bg-[#0e0a1f]">
       {/* Left brand panel — hidden on small screens */}
@@ -26,24 +36,19 @@ export default function AuthLayout() {
 
         <div className="relative">
           <p className="text-3xl font-bold leading-snug mb-4">
-            Book your intercity bus in under 2 minutes.
+            {t('authPanelTagline')}
           </p>
           <p className="text-slate-300 text-base leading-relaxed">
-            Search schedules, pick your seat, pay with mobile money, and get your digital boarding token — all in one place.
+            {t('authPanelSubtitle')}
           </p>
           <div className="mt-8 flex flex-col gap-3 text-sm text-slate-300">
-            {[
-              '✓  50+ routes across Rwanda',
-              '✓  200+ daily departures',
-              '✓  Digital boarding — no printing',
-              '✓  MTN & Airtel Mobile Money accepted',
-            ].map((item) => (
+            {FEATURES.map((item) => (
               <span key={item}>{item}</span>
             ))}
           </div>
         </div>
 
-        <p className="relative text-xs text-slate-500">© 2026 Rugendo Rwanda. All rights reserved.</p>
+        <p className="relative text-xs text-slate-500">{t('authPanelCopyright')}</p>
       </div>
 
       {/* Right form panel */}
@@ -58,7 +63,7 @@ export default function AuthLayout() {
               Rugendo Rwanda
             </span>
           </Link>
-          <p className="text-gray-500 dark:text-slate-400 text-sm mt-1">Intercity Bus Booking</p>
+          <p className="text-gray-500 dark:text-slate-400 text-sm mt-1">{t('authMobileSubtitle')}</p>
         </div>
 
         <div className="w-full max-w-md">

@@ -1,18 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { bookingService } from '../../services/bookingService.js';
-import { useAuth } from '../../contexts/AuthContext.jsx';
+import { useLanguage } from '../../contexts/LanguageContext.jsx';
 
-function formatTime(isoString) {
+const LOCALE_BY_LANGUAGE = { en: 'en-RW', rw: 'rw-RW', fr: 'fr-FR', sw: 'sw' };
+
+function formatTime(isoString, locale) {
   if (!isoString) return '--:--';
-  return new Date(isoString).toLocaleTimeString('en-RW', {
+  return new Date(isoString).toLocaleTimeString(locale, {
     hour: '2-digit', minute: '2-digit', hour12: false,
   });
 }
 
-function formatDate(isoString) {
+function formatDate(isoString, locale) {
   if (!isoString) return '';
-  return new Date(isoString).toLocaleDateString('en-RW', {
+  return new Date(isoString).toLocaleDateString(locale, {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
   });
 }
@@ -27,16 +29,18 @@ function formatDuration(min) {
 }
 
 export default function BookingPage() {
+  const { t, language } = useLanguage();
+  const locale = LOCALE_BY_LANGUAGE[language] || 'en-RW';
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const scheduleId = parseInt(searchParams.get('scheduleId'), 10);
 
-  const [schedule,      setSchedule]     = useState(null);
-  const [loading,       setLoading]      = useState(true);
-  const [error,         setError]        = useState(null);
-  const [seats,         setSeats]        = useState(1);
-  const [submitting,    setSubmitting]   = useState(false);
-  const [submitError,   setSubmitError]  = useState(null);
+  const [schedule,    setSchedule]   = useState(null);
+  const [loading,     setLoading]    = useState(true);
+  const [error,       setError]      = useState(null);
+  const [seats,       setSeats]      = useState(1);
+  const [submitting,  setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
 
   useEffect(() => {
     if (!scheduleId || isNaN(scheduleId)) {
@@ -46,7 +50,7 @@ export default function BookingPage() {
     }
     bookingService.getScheduleById(scheduleId)
       .then((res) => setSchedule(res.data))
-      .catch(() => setError('Could not load schedule details. Please go back and try again.'))
+      .catch(() => setError(t('bookingNotFoundText')))
       .finally(() => setLoading(false));
   }, [scheduleId]);
 
@@ -54,7 +58,7 @@ export default function BookingPage() {
     return (
       <div className="flex flex-col items-center py-20 gap-4">
         <div className="w-10 h-10 border-4 border-brand-600 border-t-transparent rounded-full animate-spin" />
-        <p className="text-gray-500 dark:text-slate-400">Loading schedule…</p>
+        <p className="text-gray-500 dark:text-slate-400">{t('bookingLoadingSchedule')}</p>
       </div>
     );
   }
@@ -63,9 +67,9 @@ export default function BookingPage() {
     return (
       <div className="text-center py-16">
         <div className="text-5xl mb-4">⚠️</div>
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Schedule not found</h2>
-        <p className="text-gray-500 dark:text-slate-400 mb-6">{error || 'The selected schedule could not be found.'}</p>
-        <Link to="/" className="btn-gradient">Search trips</Link>
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{t('bookingNotFoundTitle')}</h2>
+        <p className="text-gray-500 dark:text-slate-400 mb-6">{error || t('bookingNotFoundText')}</p>
+        <Link to="/" className="btn-gradient">{t('bookingSearchTrips')}</Link>
       </div>
     );
   }
@@ -74,24 +78,18 @@ export default function BookingPage() {
   const maxSeats   = Math.min(schedule.seatsAvailable, 6);
   const totalPrice = price * seats;
   const hasDeparted = new Date() >= new Date(schedule.departureTime);
+  const seatsLabel = seats > 1 ? t('bookingSeats') : t('bookingSeat');
 
   async function handleConfirm() {
     setSubmitError(null);
     setSubmitting(true);
     try {
-      const res = await bookingService.createBooking({
-        scheduleId: schedule.id,
-        seats,
-      });
-      // Navigate to payment page with the created booking
+      const res = await bookingService.createBooking({ scheduleId: schedule.id, seats });
       navigate('/passenger/payment', {
         state: { booking: res.data, schedule },
       });
     } catch (err) {
-      const msg =
-        err?.response?.data?.message ||
-        'Could not create booking. Please try again.';
-      setSubmitError(msg);
+      setSubmitError(err?.response?.data?.message || t('bookingNotFoundText'));
     } finally {
       setSubmitting(false);
     }
@@ -100,24 +98,21 @@ export default function BookingPage() {
   return (
     <div className="max-w-2xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Booking summary</h1>
-        <p className="text-gray-500 dark:text-slate-400 mt-1">
-          Review your trip details before continuing to payment.
-        </p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('bookingTitle')}</h1>
+        <p className="text-gray-500 dark:text-slate-400 mt-1">{t('bookingSubtitle')}</p>
       </div>
 
       {/* Schedule details card */}
       <div className="card mb-6">
         <div className="flex items-center justify-between mb-4">
-          <span className="text-sm font-medium text-gray-500 dark:text-slate-400">Your trip</span>
+          <span className="text-sm font-medium text-gray-500 dark:text-slate-400">{t('bookingYourTrip')}</span>
           <span className="badge-brand">{schedule.company?.name}</span>
         </div>
 
-        {/* Route + times */}
         <div className="flex items-center gap-4 mb-5">
           <div className="text-center">
             <p className="text-3xl font-extrabold text-gray-900 dark:text-white">
-              {formatTime(schedule.departureTime)}
+              {formatTime(schedule.departureTime, locale)}
             </p>
             <p className="text-sm font-semibold text-gray-700 dark:text-slate-300 mt-0.5">
               {schedule.route?.origin}
@@ -135,7 +130,7 @@ export default function BookingPage() {
           </div>
           <div className="text-center">
             <p className="text-3xl font-extrabold text-gray-900 dark:text-white">
-              {formatTime(schedule.arrivalTime)}
+              {formatTime(schedule.arrivalTime, locale)}
             </p>
             <p className="text-sm font-semibold text-gray-700 dark:text-slate-300 mt-0.5">
               {schedule.route?.destination}
@@ -143,28 +138,25 @@ export default function BookingPage() {
           </div>
         </div>
 
-        {/* Date + bus details */}
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div>
-            <p className="text-gray-400 dark:text-slate-500">Date</p>
-            <p className="font-medium text-gray-900 dark:text-white">
-              {formatDate(schedule.departureTime)}
-            </p>
+            <p className="text-gray-400 dark:text-slate-500">{t('bookingDate')}</p>
+            <p className="font-medium text-gray-900 dark:text-white">{formatDate(schedule.departureTime, locale)}</p>
           </div>
           <div>
-            <p className="text-gray-400 dark:text-slate-500">Bus</p>
+            <p className="text-gray-400 dark:text-slate-500">{t('bookingBus')}</p>
             <p className="font-medium text-gray-900 dark:text-white">
               {schedule.bus?.model || 'Coach'} · {schedule.bus?.plateNumber}
             </p>
           </div>
           <div>
-            <p className="text-gray-400 dark:text-slate-500">Available seats</p>
+            <p className="text-gray-400 dark:text-slate-500">{t('bookingAvailableSeats')}</p>
             <p className={`font-medium ${schedule.seatsAvailable <= 5 ? 'text-orange-500' : 'text-gray-900 dark:text-white'}`}>
               {schedule.seatsAvailable}
             </p>
           </div>
           <div>
-            <p className="text-gray-400 dark:text-slate-500">Price per seat</p>
+            <p className="text-gray-400 dark:text-slate-500">{t('bookingPricePerSeat')}</p>
             <p className="font-medium text-brand-600 dark:text-brand-400">
               RWF {price.toLocaleString()}
             </p>
@@ -174,7 +166,7 @@ export default function BookingPage() {
 
       {/* Seat count selector */}
       <div className="card mb-6">
-        <label className="label mb-2">Number of seats</label>
+        <label className="label mb-2">{t('bookingNumberOfSeats')}</label>
         <div className="flex items-center gap-4">
           <button
             type="button"
@@ -194,7 +186,7 @@ export default function BookingPage() {
             +
           </button>
           <span className="text-sm text-gray-500 dark:text-slate-400 ml-2">
-            (max {maxSeats})
+            {t('bookingMax', { max: maxSeats })}
           </span>
         </div>
       </div>
@@ -202,19 +194,18 @@ export default function BookingPage() {
       {/* Price summary */}
       <div className="card mb-6 bg-[#f8f7ff] dark:bg-[#1a1035]">
         <div className="flex justify-between text-sm text-gray-600 dark:text-slate-400 mb-2">
-          <span>RWF {price.toLocaleString()} × {seats} seat{seats > 1 ? 's' : ''}</span>
+          <span>RWF {price.toLocaleString()} × {seats} {seatsLabel}</span>
           <span>RWF {totalPrice.toLocaleString()}</span>
         </div>
         <div className="flex justify-between font-bold text-lg text-gray-900 dark:text-white border-t border-[#e8e3ff] dark:border-[#2d1a5e] pt-3 mt-2">
-          <span>Total</span>
+          <span>{t('bookingTotal')}</span>
           <span className="text-brand-600 dark:text-brand-400">RWF {totalPrice.toLocaleString()}</span>
         </div>
       </div>
 
-      {/* Actions */}
       {hasDeparted && (
         <div className="mb-4 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 text-sm">
-          This trip has already departed and can no longer be booked.
+          {t('bookingDepartedWarning')}
         </div>
       )}
       {submitError && (
@@ -229,7 +220,7 @@ export default function BookingPage() {
           disabled={submitting}
           className="btn-secondary flex-1"
         >
-          Back
+          {t('bookingBack')}
         </button>
         <button
           type="button"
@@ -240,12 +231,12 @@ export default function BookingPage() {
           {submitting && (
             <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
           )}
-          {submitting ? 'Creating booking…' : 'Continue to payment'}
+          {submitting ? t('bookingCreating') : t('bookingContinuePayment')}
         </button>
       </div>
 
       <p className="text-xs text-gray-400 dark:text-slate-600 mt-4 text-center">
-        Seats are not reserved until payment is completed.
+        {t('bookingSeatsNote')}
       </p>
     </div>
   );

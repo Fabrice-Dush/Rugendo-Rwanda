@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { authService } from '../../services/authService.js';
+import { useLanguage } from '../../contexts/LanguageContext.jsx';
 
 function EyeIcon({ open }) {
   return open ? (
@@ -18,6 +19,7 @@ function EyeIcon({ open }) {
 
 function PasswordInput({ name, value, onChange, placeholder, autoComplete }) {
   const [visible, setVisible] = useState(false);
+  const { t } = useLanguage();
   return (
     <div className="relative">
       <input
@@ -36,7 +38,7 @@ function PasswordInput({ name, value, onChange, placeholder, autoComplete }) {
         tabIndex={-1}
         onClick={() => setVisible((v) => !v)}
         className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300"
-        aria-label={visible ? 'Hide password' : 'Show password'}
+        aria-label={visible ? t('loginHidePassword') : t('loginShowPassword')}
       >
         <EyeIcon open={visible} />
       </button>
@@ -45,6 +47,7 @@ function PasswordInput({ name, value, onChange, placeholder, autoComplete }) {
 }
 
 export default function ResetPasswordPage() {
+  const { t } = useLanguage();
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token') || '';
   const navigate = useNavigate();
@@ -59,11 +62,11 @@ export default function ResetPasswordPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (form.password !== form.confirmPassword) {
-      setError('Passwords do not match.');
+      setError(t('resetErrorMismatch'));
       return;
     }
     if (!token) {
-      setError('Reset token is missing. Please use the link from your email.');
+      setError(t('resetErrorMissingToken'));
       return;
     }
     setError('');
@@ -72,7 +75,7 @@ export default function ResetPasswordPage() {
       await authService.resetPassword({ token, password: form.password });
       setDone(true);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to reset password. The link may have expired.');
+      setError(err.response?.data?.message || t('resetErrorFailed'));
     } finally {
       setLoading(false);
     }
@@ -82,11 +85,9 @@ export default function ResetPasswordPage() {
     return (
       <div className="text-center py-6">
         <div className="text-5xl mb-4">⚠️</div>
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Invalid reset link</h2>
-        <p className="text-sm text-gray-500 dark:text-slate-400 mb-6">
-          This link is invalid or has expired. Request a new one below.
-        </p>
-        <Link to="/forgot-password" className="btn-gradient">Request new link</Link>
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{t('resetInvalidTitle')}</h2>
+        <p className="text-sm text-gray-500 dark:text-slate-400 mb-6">{t('resetInvalidText')}</p>
+        <Link to="/forgot-password" className="btn-gradient">{t('resetRequestNew')}</Link>
       </div>
     );
   }
@@ -95,21 +96,17 @@ export default function ResetPasswordPage() {
     return (
       <div className="text-center py-6">
         <div className="text-5xl mb-4">✅</div>
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Password updated</h2>
-        <p className="text-sm text-gray-500 dark:text-slate-400 mb-6">
-          Your password has been reset. You can now sign in with your new password.
-        </p>
-        <Link to="/login" className="btn-gradient">Sign in</Link>
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{t('resetDoneTitle')}</h2>
+        <p className="text-sm text-gray-500 dark:text-slate-400 mb-6">{t('resetDoneText')}</p>
+        <Link to="/login" className="btn-gradient">{t('resetSignInBtn')}</Link>
       </div>
     );
   }
 
   return (
     <div>
-      <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">Set a new password</h2>
-      <p className="text-sm text-gray-500 dark:text-slate-400 mb-7">
-        Choose a strong password for your Rugendo Rwanda account.
-      </p>
+      <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">{t('resetTitle')}</h2>
+      <p className="text-sm text-gray-500 dark:text-slate-400 mb-7">{t('resetSubtitle')}</p>
 
       {error && (
         <div className="mb-4 p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 text-sm">
@@ -119,27 +116,27 @@ export default function ResetPasswordPage() {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="label">New password</label>
+          <label className="label">{t('resetNewPassword')}</label>
           <PasswordInput
             name="password"
             value={form.password}
             onChange={handleChange}
-            placeholder="At least 8 characters"
+            placeholder={t('resetPasswordHint')}
             autoComplete="new-password"
           />
         </div>
         <div>
-          <label className="label">Confirm new password</label>
+          <label className="label">{t('resetConfirmPassword')}</label>
           <PasswordInput
             name="confirmPassword"
             value={form.confirmPassword}
             onChange={handleChange}
-            placeholder="Repeat your new password"
+            placeholder={t('resetRepeatHint')}
             autoComplete="new-password"
           />
         </div>
         <button type="submit" disabled={loading} className="btn-gradient w-full">
-          {loading ? 'Updating…' : 'Update password'}
+          {loading ? t('resetSubmitting') : t('resetSubmitBtn')}
         </button>
       </form>
     </div>

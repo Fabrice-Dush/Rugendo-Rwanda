@@ -1,38 +1,40 @@
 import React, { useState } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { bookingService } from '../../services/bookingService.js';
+import { useLanguage } from '../../contexts/LanguageContext.jsx';
 
-function formatTime(isoString) {
+const LOCALE_BY_LANGUAGE = { en: 'en-RW', rw: 'rw-RW', fr: 'fr-FR', sw: 'sw' };
+
+function formatTime(isoString, locale) {
   if (!isoString) return '--:--';
-  return new Date(isoString).toLocaleTimeString('en-RW', {
+  return new Date(isoString).toLocaleTimeString(locale, {
     hour: '2-digit', minute: '2-digit', hour12: false,
   });
 }
 
-function formatDate(isoString) {
+function formatDate(isoString, locale) {
   if (!isoString) return '';
-  return new Date(isoString).toLocaleDateString('en-RW', {
+  return new Date(isoString).toLocaleDateString(locale, {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
   });
 }
 
 export default function PaymentPage() {
+  const { t, language } = useLanguage();
+  const locale = LOCALE_BY_LANGUAGE[language] || 'en-RW';
   const { state } = useLocation();
   const navigate  = useNavigate();
 
-  const [paying,      setPaying]     = useState(false);
-  const [payError,    setPayError]   = useState(null);
+  const [paying,   setPaying]   = useState(false);
+  const [payError, setPayError] = useState(null);
 
-  // Guard: if navigated here without state (e.g. direct URL), send back
   if (!state?.booking) {
     return (
       <div className="text-center py-16">
         <div className="text-5xl mb-4">⚠️</div>
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">No booking found</h2>
-        <p className="text-gray-500 dark:text-slate-400 mb-6">
-          Start by searching for a trip.
-        </p>
-        <Link to="/" className="btn-gradient">Search trips</Link>
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{t('paymentNoBooking')}</h2>
+        <p className="text-gray-500 dark:text-slate-400 mb-6">{t('paymentNoBookingText')}</p>
+        <Link to="/" className="btn-gradient">{t('paymentSearchTrips')}</Link>
       </div>
     );
   }
@@ -50,10 +52,7 @@ export default function PaymentPage() {
         replace: true,
       });
     } catch (err) {
-      const msg =
-        err?.response?.data?.message ||
-        'Payment could not be processed. Please try again.';
-      setPayError(msg);
+      setPayError(err?.response?.data?.message || t('paymentError'));
     } finally {
       setPaying(false);
     }
@@ -64,22 +63,20 @@ export default function PaymentPage() {
   return (
     <div className="max-w-2xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Payment</h1>
-        <p className="text-gray-500 dark:text-slate-400 mt-1">
-          Confirm your booking and complete payment.
-        </p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('paymentTitle')}</h1>
+        <p className="text-gray-500 dark:text-slate-400 mt-1">{t('paymentSubtitle')}</p>
       </div>
 
       {/* Booking reference banner */}
       <div className="card mb-5 bg-[#f0ebff] dark:bg-[#1a1035] border border-[#c4b5fd] dark:border-[#4c1d95]">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-xs text-gray-500 dark:text-slate-400 mb-0.5">Booking reference</p>
+            <p className="text-xs text-gray-500 dark:text-slate-400 mb-0.5">{t('paymentBookingRef')}</p>
             <p className="text-xl font-bold tracking-widest text-brand-700 dark:text-brand-300">
               {booking.reference}
             </p>
           </div>
-          <span className="badge-brand">PENDING</span>
+          <span className="badge-brand">{t('bookingStatusPending')}</span>
         </div>
       </div>
 
@@ -87,12 +84,12 @@ export default function PaymentPage() {
       {sch && (
         <div className="card mb-5">
           <p className="text-xs font-medium text-gray-400 dark:text-slate-500 mb-3 uppercase tracking-wide">
-            Trip summary
+            {t('paymentTripSummary')}
           </p>
           <div className="flex items-center gap-4 mb-4">
             <div className="text-center">
               <p className="text-2xl font-extrabold text-gray-900 dark:text-white">
-                {formatTime(sch.departureTime)}
+                {formatTime(sch.departureTime, locale)}
               </p>
               <p className="text-sm font-semibold text-gray-700 dark:text-slate-300">
                 {sch.route?.origin}
@@ -105,7 +102,7 @@ export default function PaymentPage() {
             </div>
             <div className="text-center">
               <p className="text-2xl font-extrabold text-gray-900 dark:text-white">
-                {formatTime(sch.arrivalTime)}
+                {formatTime(sch.arrivalTime, locale)}
               </p>
               <p className="text-sm font-semibold text-gray-700 dark:text-slate-300">
                 {sch.route?.destination}
@@ -115,19 +112,19 @@ export default function PaymentPage() {
 
           <div className="grid grid-cols-2 gap-2 text-sm">
             <div>
-              <p className="text-gray-400 dark:text-slate-500">Date</p>
-              <p className="font-medium text-gray-900 dark:text-white">{formatDate(sch.departureTime)}</p>
+              <p className="text-gray-400 dark:text-slate-500">{t('paymentDate')}</p>
+              <p className="font-medium text-gray-900 dark:text-white">{formatDate(sch.departureTime, locale)}</p>
             </div>
             <div>
-              <p className="text-gray-400 dark:text-slate-500">Company</p>
+              <p className="text-gray-400 dark:text-slate-500">{t('paymentCompany')}</p>
               <p className="font-medium text-gray-900 dark:text-white">{sch.company?.name || '—'}</p>
             </div>
             <div>
-              <p className="text-gray-400 dark:text-slate-500">Seats</p>
+              <p className="text-gray-400 dark:text-slate-500">{t('paymentSeats')}</p>
               <p className="font-medium text-gray-900 dark:text-white">{booking.seatsBooked}</p>
             </div>
             <div>
-              <p className="text-gray-400 dark:text-slate-500">Bus</p>
+              <p className="text-gray-400 dark:text-slate-500">{t('paymentBus')}</p>
               <p className="font-medium text-gray-900 dark:text-white">
                 {sch.bus?.model || 'Coach'} · {sch.bus?.plateNumber}
               </p>
@@ -139,22 +136,18 @@ export default function PaymentPage() {
       {/* Amount due */}
       <div className="card mb-6 bg-[#f8f7ff] dark:bg-[#1a1035]">
         <div className="flex justify-between font-bold text-lg text-gray-900 dark:text-white">
-          <span>Amount due</span>
+          <span>{t('paymentAmountDue')}</span>
           <span className="text-brand-600 dark:text-brand-400">RWF {amount.toLocaleString()}</span>
         </div>
-        <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">
-          Simulated payment — no real money will be charged.
-        </p>
+        <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">{t('paymentSimulated')}</p>
       </div>
 
-      {/* Error */}
       {payError && (
         <div className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 text-sm">
           {payError}
         </div>
       )}
 
-      {/* Payment actions */}
       <div className="flex flex-col gap-3">
         <button
           type="button"
@@ -165,17 +158,16 @@ export default function PaymentPage() {
           {paying && (
             <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
           )}
-          {paying ? 'Processing…' : `Pay RWF ${amount.toLocaleString()}`}
+          {paying ? t('paymentProcessing') : t('paymentPayBtn', { amount: amount.toLocaleString() })}
         </button>
 
-        {/* Dev convenience: simulate a payment failure */}
         <button
           type="button"
           onClick={() => handlePay('fail')}
           disabled={paying}
           className="btn-secondary w-full text-sm py-2 opacity-70 hover:opacity-100"
         >
-          Simulate payment failure (dev)
+          {t('paymentSimFail')}
         </button>
 
         <button
@@ -184,7 +176,7 @@ export default function PaymentPage() {
           disabled={paying}
           className="text-sm text-gray-500 dark:text-slate-400 hover:underline text-center"
         >
-          ← Back to booking summary
+          {t('paymentBack')}
         </button>
       </div>
     </div>

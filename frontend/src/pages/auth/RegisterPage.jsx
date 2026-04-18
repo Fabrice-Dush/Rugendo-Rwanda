@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext.jsx';
+import { useLanguage } from '../../contexts/LanguageContext.jsx';
 
 const RWANDA_PHONE_RE = /^07(2|3|8|9)\d{7}$/;
 
@@ -20,6 +21,7 @@ function EyeIcon({ open }) {
 
 function PasswordInput({ name, value, onChange, placeholder, autoComplete }) {
   const [visible, setVisible] = useState(false);
+  const { t } = useLanguage();
   return (
     <div className="relative">
       <input
@@ -38,7 +40,7 @@ function PasswordInput({ name, value, onChange, placeholder, autoComplete }) {
         tabIndex={-1}
         onClick={() => setVisible((v) => !v)}
         className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300"
-        aria-label={visible ? 'Hide password' : 'Show password'}
+        aria-label={visible ? t('loginHidePassword') : t('loginShowPassword')}
       >
         <EyeIcon open={visible} />
       </button>
@@ -48,6 +50,7 @@ function PasswordInput({ name, value, onChange, placeholder, autoComplete }) {
 
 export default function RegisterPage() {
   const { register, loginWithGoogle } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
 
   const [form, setForm]       = useState({ name: '', email: '', phone: '', password: '', confirmPassword: '' });
@@ -80,7 +83,7 @@ export default function RegisterPage() {
       const roleRoutes = { passenger: '/passenger', admin: '/admin', super_admin: '/super-admin', operator: '/operator' };
       navigate(roleRoutes[data.user.role] || '/');
     } catch (err) {
-      setError(err.response?.data?.message || 'Google sign-up failed. Please try again.');
+      setError(err.response?.data?.message || t('registerErrorGoogle'));
     } finally {
       setLoading(false);
     }
@@ -91,21 +94,20 @@ export default function RegisterPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // At least one of email or phone is required
     const hasEmail = form.email.trim() !== '';
     const hasPhone = form.phone.trim() !== '';
     if (!hasEmail && !hasPhone) {
-      setError('Please enter at least an email address or a phone number.');
+      setError(t('registerErrorEmailPhone'));
       return;
     }
 
     if (hasPhone && !RWANDA_PHONE_RE.test(form.phone)) {
-      setError('Phone must be a valid Rwanda number (e.g. 0781234567 — starts with 072, 073, 078, or 079).');
+      setError(t('registerErrorPhone'));
       return;
     }
 
     if (form.password !== form.confirmPassword) {
-      setError('Passwords do not match.');
+      setError(t('registerErrorPasswordMismatch'));
       return;
     }
 
@@ -116,7 +118,7 @@ export default function RegisterPage() {
       await register(payload);
       navigate('/login');
     } catch (err) {
-      setError(err.response?.data?.message || 'Registration failed. Please try again.');
+      setError(err.response?.data?.message || t('registerErrorFailed'));
     } finally {
       setLoading(false);
     }
@@ -124,10 +126,8 @@ export default function RegisterPage() {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">Create account</h2>
-      <p className="text-sm text-gray-500 dark:text-slate-400 mb-7">
-        Book intercity buses across Rwanda. Free to join.
-      </p>
+      <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">{t('registerTitle')}</h2>
+      <p className="text-sm text-gray-500 dark:text-slate-400 mb-7">{t('registerSubtitle')}</p>
 
       {error && (
         <div className="mb-4 p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 text-sm">
@@ -139,13 +139,13 @@ export default function RegisterPage() {
 
       <div className="relative my-5 flex items-center">
         <div className="flex-grow border-t border-gray-200 dark:border-slate-700" />
-        <span className="mx-3 text-xs text-gray-400 dark:text-slate-500 shrink-0">or register with email / phone</span>
+        <span className="mx-3 text-xs text-gray-400 dark:text-slate-500 shrink-0">{t('navOrRegister')}</span>
         <div className="flex-grow border-t border-gray-200 dark:border-slate-700" />
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="label">Full name</label>
+          <label className="label">{t('registerFullName')}</label>
           <input
             type="text"
             name="name"
@@ -160,7 +160,8 @@ export default function RegisterPage() {
 
         <div>
           <label className="label">
-            Email address <span className="text-gray-400 dark:text-slate-500 font-normal text-xs">(or phone below)</span>
+            {t('registerEmailAddress')}{' '}
+            <span className="text-gray-400 dark:text-slate-500 font-normal text-xs">{t('registerOrPhoneBelow')}</span>
           </label>
           <input
             type="email"
@@ -175,7 +176,8 @@ export default function RegisterPage() {
 
         <div>
           <label className="label">
-            Phone number <span className="text-gray-400 dark:text-slate-500 font-normal text-xs">(or email above)</span>
+            {t('registerPhoneNumber')}{' '}
+            <span className="text-gray-400 dark:text-slate-500 font-normal text-xs">{t('registerOrEmailAbove')}</span>
           </label>
           <input
             type="tel"
@@ -186,48 +188,46 @@ export default function RegisterPage() {
             placeholder="0781234567"
             className="input"
           />
-          <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">
-            Rwanda numbers: 072, 073, 078, or 079 followed by 7 digits.
-          </p>
+          <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">{t('registerPhoneHint')}</p>
         </div>
 
         <div>
-          <label className="label">Password</label>
+          <label className="label">{t('password')}</label>
           <PasswordInput
             name="password"
             value={form.password}
             onChange={handleChange}
-            placeholder="At least 8 characters"
+            placeholder={t('registerPasswordHint')}
             autoComplete="new-password"
           />
         </div>
 
         <div>
-          <label className="label">Confirm password</label>
+          <label className="label">{t('registerConfirmPassword')}</label>
           <PasswordInput
             name="confirmPassword"
             value={form.confirmPassword}
             onChange={handleChange}
-            placeholder="Repeat your password"
+            placeholder={t('registerRepeatPassword')}
             autoComplete="new-password"
           />
         </div>
 
         <p className="text-xs text-gray-400 dark:text-slate-500">
-          By creating an account you agree to our{' '}
-          <Link to="/terms" className="text-brand-600 dark:text-brand-400 hover:underline">Terms of Service</Link>
-          {' '}and{' '}
-          <Link to="/privacy" className="text-brand-600 dark:text-brand-400 hover:underline">Privacy Policy</Link>.
+          {t('registerTermsText')}{' '}
+          <Link to="/terms" className="text-brand-600 dark:text-brand-400 hover:underline">{t('registerTermsLink')}</Link>
+          {' '}{t('registerAnd')}{' '}
+          <Link to="/privacy" className="text-brand-600 dark:text-brand-400 hover:underline">{t('registerPrivacyLink')}</Link>.
         </p>
 
         <button type="submit" disabled={loading} className="btn-gradient w-full mt-1">
-          {loading ? 'Creating account…' : 'Create account'}
+          {loading ? t('registerSubmitting') : t('registerSubmitBtn')}
         </button>
       </form>
 
       <p className="text-sm text-gray-500 dark:text-slate-400 mt-6 text-center">
-        Already have an account?{' '}
-        <Link to="/login" className="text-brand-600 dark:text-brand-400 font-medium hover:underline">Sign in</Link>
+        {t('registerHasAccount')}{' '}
+        <Link to="/login" className="text-brand-600 dark:text-brand-400 font-medium hover:underline">{t('registerSignIn')}</Link>
       </p>
     </div>
   );

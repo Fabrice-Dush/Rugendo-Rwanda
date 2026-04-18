@@ -1,8 +1,10 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useLanguage } from '../../contexts/LanguageContext.jsx';
 
 export default function NotFoundPage() {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   return (
     <div className="min-h-screen flex flex-col items-center justify-center text-center px-4 bg-white dark:bg-[#0e0a1f]">
       <div
@@ -11,14 +13,11 @@ export default function NotFoundPage() {
       >
         404
       </div>
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-white mt-4 mb-2">Page not found</h1>
-      <p className="text-gray-500 dark:text-slate-400 max-w-sm mb-8">
-        This page doesn't exist or may have been moved.
-        Check the URL, or return to the homepage.
-      </p>
+      <h1 className="text-2xl font-bold text-gray-900 dark:text-white mt-4 mb-2">{t('notFoundTitle')}</h1>
+      <p className="text-gray-500 dark:text-slate-400 max-w-sm mb-8">{t('notFoundDesc')}</p>
       <div className="flex gap-4 flex-wrap justify-center">
-        <button onClick={() => navigate(-1)} className="btn-secondary">Go back</button>
-        <Link to="/" className="btn-gradient">Go to homepage</Link>
+        <button onClick={() => navigate(-1)} className="btn-secondary">{t('notFoundGoBack')}</button>
+        <Link to="/" className="btn-gradient">{t('notFoundGoHome')}</Link>
       </div>
     </div>
   );

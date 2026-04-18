@@ -46,8 +46,16 @@
 ### Theme and Language Verification
 
 - [ ] Verify dark / light mode toggle works and persists preference
-- [ ] Verify language-switching scaffold is in place (string keys, locale file structure)
-- [ ] Confirm no hardcoded UI strings that would block future i18n
+- [x] Global multilingual system implemented (en, fr, rw, sw) — see DECISIONS.md #N
+- [x] Language persists in localStorage under key `rugendo-lang`
+- [x] Language switcher in Navbar (desktop + mobile) updates full app immediately
+- [x] Navbar, Sidebar, Footer fully translated (4 languages)
+- [x] Auth flow fully translated: Login, Register, ForgotPassword, ResetPassword
+- [x] Passenger booking flow translated: BookingPage, PaymentPage, BookingConfirmationPage, MyBookingsPage
+- [x] Operator flow: BoardingValidation + OperatorBookings already translated; sw locale added
+- [x] Dashboard stubs translated: PassengerDashboard, OperatorDashboard
+- [ ] Manual test: switch to each language, verify all 4 change immediately app-wide
+- [ ] Remaining untranslated: public pages (HomePage, SearchTripsPage, SearchResultsPage, RoutesPage, HowItWorksPage, FAQ, About, Contact, Legal pages), admin/super-admin pages, OperatorProfile, passenger ProfilePage
 
 ### Boarding — Manual Testing Required
 

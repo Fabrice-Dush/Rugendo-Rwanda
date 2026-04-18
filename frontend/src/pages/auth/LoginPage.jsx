@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext.jsx';
+import { useLanguage } from '../../contexts/LanguageContext.jsx';
 
 function EyeIcon({ open }) {
   return open ? (
@@ -25,6 +26,7 @@ const ROLE_ROUTES = {
 
 export default function LoginPage() {
   const { login, loginWithGoogle } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
 
   const [form, setForm]           = useState({ identifier: '', password: '' });
@@ -34,7 +36,6 @@ export default function LoginPage() {
 
   const googleBtnRef = useRef(null);
 
-  // ── Google Identity Services setup ───────────────────────────────────────
   useEffect(() => {
     if (!window.google || !googleBtnRef.current) return;
 
@@ -58,13 +59,12 @@ export default function LoginPage() {
       const data = await loginWithGoogle(credential);
       navigate(ROLE_ROUTES[data.user.role] || '/');
     } catch (err) {
-      setError(err.response?.data?.message || 'Google sign-in failed. Please try again.');
+      setError(err.response?.data?.message || t('loginGoogleFailed'));
     } finally {
       setLoading(false);
     }
   };
 
-  // ── Email / phone login ───────────────────────────────────────────────────
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleSubmit = async (e) => {
@@ -75,7 +75,7 @@ export default function LoginPage() {
       const data = await login(form);
       navigate(ROLE_ROUTES[data.user.role] || '/');
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed. Check your credentials and try again.');
+      setError(err.response?.data?.message || t('loginFailed'));
     } finally {
       setLoading(false);
     }
@@ -83,10 +83,8 @@ export default function LoginPage() {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">Sign in</h2>
-      <p className="text-sm text-gray-500 dark:text-slate-400 mb-7">
-        Welcome back. Enter your details to continue.
-      </p>
+      <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">{t('loginTitle')}</h2>
+      <p className="text-sm text-gray-500 dark:text-slate-400 mb-7">{t('loginSubtitle')}</p>
 
       {error && (
         <div className="mb-4 p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 text-sm">
@@ -99,13 +97,13 @@ export default function LoginPage() {
 
       <div className="relative my-5 flex items-center">
         <div className="flex-grow border-t border-gray-200 dark:border-slate-700" />
-        <span className="mx-3 text-xs text-gray-400 dark:text-slate-500 shrink-0">or sign in with email / phone</span>
+        <span className="mx-3 text-xs text-gray-400 dark:text-slate-500 shrink-0">{t('navOrSignIn')}</span>
         <div className="flex-grow border-t border-gray-200 dark:border-slate-700" />
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="label">Email address or phone number</label>
+          <label className="label">{t('loginIdentifierLabel')}</label>
           <input
             type="text"
             name="identifier"
@@ -113,15 +111,15 @@ export default function LoginPage() {
             onChange={handleChange}
             required
             autoComplete="username"
-            placeholder="you@example.com or 0781234567"
+            placeholder={t('loginIdentifierPlaceholder')}
             className="input"
           />
         </div>
         <div>
           <div className="flex justify-between items-center mb-1.5">
-            <label className="label mb-0">Password</label>
+            <label className="label mb-0">{t('password')}</label>
             <Link to="/forgot-password" className="text-xs text-brand-600 dark:text-brand-400 hover:underline">
-              Forgot password?
+              {t('loginForgotPasswordLink')}
             </Link>
           </div>
           <div className="relative">
@@ -140,21 +138,21 @@ export default function LoginPage() {
               tabIndex={-1}
               onClick={() => setShowPw((v) => !v)}
               className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300"
-              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              aria-label={showPassword ? t('loginHidePassword') : t('loginShowPassword')}
             >
               <EyeIcon open={showPassword} />
             </button>
           </div>
         </div>
         <button type="submit" disabled={loading} className="btn-gradient w-full mt-2">
-          {loading ? 'Signing in…' : 'Sign in'}
+          {loading ? t('loginSubmitting') : t('loginSubmitBtn')}
         </button>
       </form>
 
       <p className="text-sm text-gray-500 dark:text-slate-400 mt-6 text-center">
-        Don't have an account?{' '}
+        {t('loginNoAccount')}{' '}
         <Link to="/register" className="text-brand-600 dark:text-brand-400 font-medium hover:underline">
-          Create account
+          {t('loginCreateAccount')}
         </Link>
       </p>
     </div>

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useLanguage } from '../../contexts/LanguageContext.jsx';
 
-// Returns today's date as YYYY-MM-DD in local time
 function todayLocal() {
   const d = new Date();
   const y = d.getFullYear();
@@ -13,8 +13,8 @@ function todayLocal() {
 export default function SearchTripsPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { t } = useLanguage();
 
-  // Pre-fill from query params when arriving from route cards / RoutesPage
   const [form, setForm] = useState({
     from:       searchParams.get('from')       || '',
     to:         searchParams.get('to')         || '',
@@ -26,7 +26,6 @@ export default function SearchTripsPage() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Guarantee a date — fall back to today if somehow empty
     const date = form.date || todayLocal();
     const params = new URLSearchParams({ ...form, date }).toString();
     navigate(`/search?${params}`);
@@ -34,56 +33,49 @@ export default function SearchTripsPage() {
 
   return (
     <div>
-      {/* Page header */}
       <section className="bg-hero-gradient text-white py-20">
         <div className="container-page text-center">
-          <span className="badge-accent mb-4">Find your ride</span>
-          <h1 className="text-4xl md:text-5xl font-extrabold mb-4">Search bus trips</h1>
-          <p className="text-slate-300 text-lg max-w-xl mx-auto">
-            Choose your route, pick a date, and see all available schedules in seconds.
-          </p>
+          <span className="badge-accent mb-4">{t('searchTripsBadge')}</span>
+          <h1 className="text-4xl md:text-5xl font-extrabold mb-4">{t('searchTripsTitle')}</h1>
+          <p className="text-slate-300 text-lg max-w-xl mx-auto">{t('searchTripsSubtitle')}</p>
         </div>
       </section>
 
-      {/* Search form */}
       <section className="section">
         <div className="container-page max-w-3xl">
           <form
             onSubmit={handleSubmit}
             className="bg-white dark:bg-[#1a1035] rounded-2xl shadow-brand border border-[#e8e3ff] dark:border-[#2d1a5e] p-8"
           >
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Where are you going?</h2>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">{t('searchTripsWhereGoing')}</h2>
 
             <div className="grid sm:grid-cols-2 gap-5">
-              {/* From */}
               <div>
-                <label className="label">From</label>
+                <label className="label">{t('from')}</label>
                 <input
                   name="from"
                   value={form.from}
                   onChange={handleChange}
-                  placeholder="Departure city (e.g. Kigali)"
+                  placeholder={t('searchTripsFromPlaceholder')}
                   required
                   className="input"
                 />
               </div>
 
-              {/* To */}
               <div>
-                <label className="label">To</label>
+                <label className="label">{t('to')}</label>
                 <input
                   name="to"
                   value={form.to}
                   onChange={handleChange}
-                  placeholder="Destination (e.g. Musanze)"
+                  placeholder={t('searchTripsToPlaceholder')}
                   required
                   className="input"
                 />
               </div>
 
-              {/* Date */}
               <div>
-                <label className="label">Travel date</label>
+                <label className="label">{t('searchTripsTravelDate')}</label>
                 <input
                   type="date"
                   name="date"
@@ -92,14 +84,11 @@ export default function SearchTripsPage() {
                   min={todayLocal()}
                   className="input"
                 />
-                <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">
-                  Defaults to today if not changed.
-                </p>
+                <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">{t('searchTripsDateHint')}</p>
               </div>
 
-              {/* Passengers */}
               <div>
-                <label className="label">Passengers</label>
+                <label className="label">{t('passengers')}</label>
                 <select
                   name="passengers"
                   value={form.passengers}
@@ -108,7 +97,7 @@ export default function SearchTripsPage() {
                 >
                   {[1, 2, 3, 4, 5, 6].map((n) => (
                     <option key={n} value={n}>
-                      {n} passenger{n > 1 ? 's' : ''}
+                      {n === 1 ? t('homePassengerN', { n }) : t('homePassengersN', { n })}
                     </option>
                   ))}
                 </select>
@@ -117,18 +106,17 @@ export default function SearchTripsPage() {
 
             <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-end">
               <Link to="/routes" className="btn-secondary text-center">
-                Browse all routes
+                {t('searchTripsBrowseRoutes')}
               </Link>
               <button type="submit" className="btn-gradient px-10">
-                Search buses
+                {t('searchTripsSearchBtn')}
               </button>
             </div>
           </form>
 
-          {/* Quick-pick popular routes */}
           <div className="mt-8">
             <p className="text-sm font-medium text-gray-500 dark:text-slate-400 mb-3">
-              Popular routes — click to pre-fill:
+              {t('searchTripsPopularRoutes')}
             </p>
             <div className="flex flex-wrap gap-2">
               {[
@@ -142,9 +130,7 @@ export default function SearchTripsPage() {
                 <button
                   key={`${r.from}-${r.to}`}
                   type="button"
-                  onClick={() =>
-                    setForm((f) => ({ ...f, from: r.from, to: r.to }))
-                  }
+                  onClick={() => setForm((f) => ({ ...f, from: r.from, to: r.to }))}
                   className="text-xs px-3 py-1.5 rounded-lg border border-[#e8e3ff] dark:border-[#2d1a5e]
                              bg-[#f8f7ff] dark:bg-[#130d2e] text-gray-600 dark:text-slate-300
                              hover:bg-brand-50 dark:hover:bg-brand-950 hover:border-brand-400 transition-colors"

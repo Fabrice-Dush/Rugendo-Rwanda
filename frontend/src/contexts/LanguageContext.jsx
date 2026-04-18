@@ -7,6 +7,7 @@ export const SUPPORTED_LANGUAGES = [
   { code: 'en', label: 'English' },
   { code: 'rw', label: 'Kinyarwanda' },
   { code: 'fr', label: 'Français' },
+  { code: 'sw', label: 'Kiswahili' },
 ];
 
 export function LanguageProvider({ children }) {
@@ -21,9 +22,16 @@ export function LanguageProvider({ children }) {
     }
   };
 
-  // t(key) — look up translation key, fall back to English, then the key itself
-  const t = (key) => {
-    return translations[language]?.[key] ?? translations['en']?.[key] ?? key;
+  // t(key, vars?) — look up translation, fall back to English, then the key.
+  // vars: object of {placeholder: value} for simple string interpolation.
+  const t = (key, vars = {}) => {
+    let str = translations[language]?.[key] ?? translations['en']?.[key] ?? key;
+    if (vars && typeof str === 'string') {
+      Object.entries(vars).forEach(([k, v]) => {
+        str = str.replace(`{${k}}`, String(v));
+      });
+    }
+    return str;
   };
 
   return (

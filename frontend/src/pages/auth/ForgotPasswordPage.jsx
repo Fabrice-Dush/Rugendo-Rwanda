@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { authService } from '../../services/authService.js';
+import { useLanguage } from '../../contexts/LanguageContext.jsx';
 
 export default function ForgotPasswordPage() {
+  const { t } = useLanguage();
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -16,7 +18,7 @@ export default function ForgotPasswordPage() {
       await authService.forgotPassword(email);
       setSent(true);
     } catch (err) {
-      setError(err.response?.data?.message || 'Something went wrong. Please try again.');
+      setError(err.response?.data?.message || t('forgotError'));
     } finally {
       setLoading(false);
     }
@@ -24,17 +26,15 @@ export default function ForgotPasswordPage() {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">Reset your password</h2>
-      <p className="text-sm text-gray-500 dark:text-slate-400 mb-7">
-        Enter your email address and we'll send you a link to reset your password.
-      </p>
+      <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">{t('forgotTitle')}</h2>
+      <p className="text-sm text-gray-500 dark:text-slate-400 mb-7">{t('forgotSubtitle')}</p>
 
       {sent ? (
         <div className="text-center py-6">
           <div className="text-5xl mb-4">📧</div>
-          <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Check your inbox</h3>
+          <h3 className="font-semibold text-gray-900 dark:text-white mb-2">{t('forgotSentTitle')}</h3>
           <p className="text-sm text-gray-500 dark:text-slate-400">
-            If an account exists for <strong>{email}</strong>, a reset link has been sent. Check your spam folder if you don't see it.
+            {t('forgotSentText', { email })}
           </p>
         </div>
       ) : (
@@ -45,25 +45,25 @@ export default function ForgotPasswordPage() {
             </div>
           )}
           <div>
-            <label className="label">Email address</label>
+            <label className="label">{t('forgotEmailLabel')}</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
               autoComplete="email"
-              placeholder="you@example.com"
+              placeholder={t('forgotEmailPlaceholder')}
               className="input"
             />
           </div>
           <button type="submit" disabled={loading} className="btn-gradient w-full">
-            {loading ? 'Sending…' : 'Send reset link'}
+            {loading ? t('forgotSubmitting') : t('forgotSubmitBtn')}
           </button>
         </form>
       )}
 
       <p className="text-sm text-center mt-6">
-        <Link to="/login" className="text-brand-600 dark:text-brand-400 hover:underline">← Back to sign in</Link>
+        <Link to="/login" className="text-brand-600 dark:text-brand-400 hover:underline">{t('forgotBackToSignIn')}</Link>
       </p>
     </div>
   );

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useLanguage } from '../../contexts/LanguageContext.jsx';
 
-// ── Popular routes data (placeholder — replace with API call) ─────────────────
 const FEATURED_ROUTES = [
   { from: 'Kigali', to: 'Butare',    distance: '136 km', duration: '2h 30min', price: 'RWF 3,500' },
   { from: 'Kigali', to: 'Musanze',   distance: '111 km', duration: '2h',       price: 'RWF 3,000' },
@@ -11,58 +11,6 @@ const FEATURED_ROUTES = [
   { from: 'Kigali', to: 'Kibungo',   distance: '114 km', duration: '2h',       price: 'RWF 3,200' },
 ];
 
-const STEPS = [
-  {
-    step: '01',
-    title: 'Search your route',
-    desc: 'Enter your departure city, destination, and travel date to see all available bus schedules.',
-    icon: '🔍',
-  },
-  {
-    step: '02',
-    title: 'Choose your schedule',
-    desc: 'Compare available trips by departure time, operator, bus class, and price. Pick what suits you.',
-    icon: '🗓️',
-  },
-  {
-    step: '03',
-    title: 'Pay & get your booking token',
-    desc: 'Complete payment securely. Receive a unique booking reference on your phone — no printing needed.',
-    icon: '🎫',
-  },
-];
-
-const BENEFITS = [
-  {
-    title: 'Book from anywhere',
-    desc: 'Reserve your seat at any time from your phone or computer — no need to queue at the bus park.',
-    icon: '📱',
-  },
-  {
-    title: 'Instant confirmation',
-    desc: 'Your booking is confirmed immediately with a unique reference. Board with confidence.',
-    icon: '✅',
-  },
-  {
-    title: 'Multiple payment options',
-    desc: 'Pay with MTN Mobile Money, Airtel Money, or bank card. Fast, safe, and convenient.',
-    icon: '💳',
-  },
-  {
-    title: 'Manage your trips',
-    desc: 'View, track, and manage all your bookings in one place. Your travel history at a glance.',
-    icon: '📋',
-  },
-];
-
-const STATS = [
-  { value: '50+',   label: 'Routes across Rwanda' },
-  { value: '200+',  label: 'Daily departures' },
-  { value: '15+',   label: 'Cities connected' },
-  { value: '98%',   label: 'On-time departure rate' },
-];
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
 function todayLocal() {
   const d = new Date();
   const y = d.getFullYear();
@@ -71,9 +19,9 @@ function todayLocal() {
   return `${y}-${m}-${day}`;
 }
 
-// ── SearchWidget ──────────────────────────────────────────────────────────────
 function SearchWidget({ compact = false }) {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const [form, setForm] = useState({ from: '', to: '', date: todayLocal(), passengers: '1' });
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
@@ -84,9 +32,7 @@ function SearchWidget({ compact = false }) {
     navigate(`/search?${params}`);
   };
 
-  const inputClass = compact
-    ? 'input text-sm'
-    : 'input py-3 text-base';
+  const inputClass = compact ? 'input text-sm' : 'input py-3 text-base';
 
   return (
     <form
@@ -95,29 +41,29 @@ function SearchWidget({ compact = false }) {
     >
       <div className={`grid gap-3 ${compact ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'}`}>
         <div>
-          <label className="label">From</label>
+          <label className="label">{t('from')}</label>
           <input
             name="from"
             value={form.from}
             onChange={handleChange}
-            placeholder="Departure city"
+            placeholder={t('homeDepartureCity')}
             required
             className={inputClass}
           />
         </div>
         <div>
-          <label className="label">To</label>
+          <label className="label">{t('to')}</label>
           <input
             name="to"
             value={form.to}
             onChange={handleChange}
-            placeholder="Destination"
+            placeholder={t('homeDestination')}
             required
             className={inputClass}
           />
         </div>
         <div>
-          <label className="label">Date</label>
+          <label className="label">{t('date')}</label>
           <input
             type="date"
             name="date"
@@ -127,26 +73,28 @@ function SearchWidget({ compact = false }) {
           />
         </div>
         <div>
-          <label className="label">Passengers</label>
+          <label className="label">{t('passengers')}</label>
           <select name="passengers" value={form.passengers} onChange={handleChange} className={inputClass}>
             {[1, 2, 3, 4, 5, 6].map((n) => (
-              <option key={n} value={n}>{n} passenger{n > 1 ? 's' : ''}</option>
+              <option key={n} value={n}>
+                {n === 1 ? t('homePassengerN', { n }) : t('homePassengersN', { n })}
+              </option>
             ))}
           </select>
         </div>
       </div>
       <div className="mt-4 flex justify-end">
         <button type="submit" className="btn-gradient px-8">
-          Search buses
+          {t('searchTripsSearchBtn')}
         </button>
       </div>
     </form>
   );
 }
 
-// ── RouteCard ─────────────────────────────────────────────────────────────────
 function RouteCard({ from, to, distance, duration, price }) {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   return (
     <button
       type="button"
@@ -164,21 +112,55 @@ function RouteCard({ from, to, distance, duration, price }) {
         <span>{duration}</span>
       </div>
       <div className="flex items-center justify-between">
-        <span className="text-xs text-gray-400 dark:text-slate-500">from</span>
+        <span className="text-xs text-gray-400 dark:text-slate-500">{t('homeFrom')}</span>
         <span className="text-brand-600 dark:text-brand-400 font-bold text-lg">{price}</span>
       </div>
     </button>
   );
 }
 
-// ── HomePage ──────────────────────────────────────────────────────────────────
 export default function HomePage() {
+  const { t } = useLanguage();
+
+  const STEPS = [
+    { step: '01', title: t('homeStep1Title'), desc: t('homeStep1Desc'), icon: '🔍' },
+    { step: '02', title: t('homeStep2Title'), desc: t('homeStep2Desc'), icon: '🗓️' },
+    { step: '03', title: t('homeStep3Title'), desc: t('homeStep3Desc'), icon: '🎫' },
+  ];
+
+  const BENEFITS = [
+    { title: t('homeBenefit1Title'), desc: t('homeBenefit1Desc'), icon: '📱' },
+    { title: t('homeBenefit2Title'), desc: t('homeBenefit2Desc'), icon: '✅' },
+    { title: t('homeBenefit3Title'), desc: t('homeBenefit3Desc'), icon: '💳' },
+    { title: t('homeBenefit4Title'), desc: t('homeBenefit4Desc'), icon: '📋' },
+  ];
+
+  const STATS = [
+    { value: '50+',  label: t('homeStatRoutes')     },
+    { value: '200+', label: t('homeStatDepartures') },
+    { value: '15+',  label: t('homeStatCities')     },
+    { value: '98%',  label: t('homeStatOnTime')     },
+  ];
+
+  const TRUST_ITEMS = [
+    t('homeTrust1'),
+    t('homeTrust2'),
+    t('homeTrust3'),
+    t('homeTrust4'),
+  ];
+
+  const TRUST_CARDS = [
+    { icon: '🔒', title: t('homeTrustCard1Title'), sub: t('homeTrustCard1Sub') },
+    { icon: '📲', title: t('homeTrustCard2Title'), sub: t('homeTrustCard2Sub') },
+    { icon: '🕒', title: t('homeTrustCard3Title'), sub: t('homeTrustCard3Sub') },
+    { icon: '🛡️', title: t('homeTrustCard4Title'), sub: t('homeTrustCard4Sub') },
+  ];
+
   return (
     <div className="overflow-x-hidden">
 
       {/* ── HERO ─────────────────────────────────────────────────── */}
       <section className="relative bg-hero-gradient text-white">
-        {/* Decorative gradient orbs */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden>
           <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-brand-600 opacity-20 blur-3xl" />
           <div className="absolute top-1/2 -right-32 w-80 h-80 rounded-full bg-accent-500 opacity-15 blur-3xl" />
@@ -186,36 +168,33 @@ export default function HomePage() {
 
         <div className="container-page relative py-24 md:py-32">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
-            {/* ── Left: text + CTAs ── */}
             <div>
-              <span className="badge-accent mb-4 inline-flex">Rwanda's modern bus booking platform</span>
+              <span className="badge-accent mb-4 inline-flex">{t('homeBadgePlatform')}</span>
               <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold leading-tight mb-6">
-                Travel Rwanda{' '}
+                {t('homeHeroTitle')}{' '}
                 <span
                   className="bg-clip-text text-transparent"
                   style={{ backgroundImage: 'linear-gradient(90deg, #9b72ff 0%, #fa26ae 100%)' }}
                 >
-                  fast, simple,
+                  {t('homeHeroHighlight')}
                 </span>{' '}
-                reliable.
+                {t('homeHeroTitleEnd')}
               </h1>
               <p className="text-lg sm:text-xl text-slate-300 max-w-xl mb-10">
-                Search intercity bus schedules, book your seat online, and get a
-                digital boarding token — all in under 2 minutes.
+                {t('homeHeroSubtitle')}
               </p>
 
               <div className="flex flex-wrap gap-3">
                 <Link to="/register" className="btn-gradient text-base px-7 py-3">
-                  Book a trip
+                  {t('homeBookTrip')}
                 </Link>
                 <Link to="/how-it-works" className="btn-secondary text-base px-7 py-3">
-                  How it works
+                  {t('homeHowItWorks')}
                 </Link>
               </div>
 
-              {/* Floating trust chips */}
               <div className="flex flex-wrap gap-2 mt-8">
-                {['Secure payments', 'Instant confirmation', 'Digital boarding'].map((chip) => (
+                {[t('homeTrustSecure'), t('homeTrustInstant'), t('homeTrustDigital')].map((chip) => (
                   <span
                     key={chip}
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium
@@ -228,18 +207,14 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* ── Right: hero illustration ── */}
             <div className="relative flex justify-center lg:justify-end">
-              {/* Brand glow halo behind the image */}
               <div
                 className="absolute inset-0 rounded-3xl blur-3xl opacity-30 pointer-events-none"
                 style={{ background: 'radial-gradient(ellipse at 60% 40%, #6e26ff 0%, #fa26ae 60%, transparent 100%)' }}
                 aria-hidden
               />
-              {/* Outer soft ring */}
               <div className="relative p-1.5 rounded-3xl"
                    style={{ background: 'linear-gradient(135deg, rgba(110,38,255,0.5) 0%, rgba(250,38,174,0.5) 100%)' }}>
-                {/* Glass card frame */}
                 <div
                   className="relative rounded-[1.25rem] overflow-hidden"
                   style={{
@@ -255,7 +230,6 @@ export default function HomePage() {
                     style={{ maxHeight: '420px' }}
                     draggable={false}
                   />
-                  {/* Subtle inner gradient overlay at bottom for depth */}
                   <div
                     className="absolute bottom-0 inset-x-0 h-16 pointer-events-none"
                     style={{ background: 'linear-gradient(to top, rgba(26,8,69,0.5) 0%, transparent 100%)' }}
@@ -267,12 +241,10 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* ── SEARCH WIDGET ── */}
         <div className="container-page pb-16 relative">
           <SearchWidget />
         </div>
 
-        {/* Bottom fade into page bg */}
         <div className="h-12 bg-gradient-to-b from-transparent to-white dark:to-[#0e0a1f]" />
       </section>
 
@@ -294,12 +266,12 @@ export default function HomePage() {
       <section className="section">
         <div className="container-page">
           <div className="text-center mb-12">
-            <span className="badge-brand mb-3">Simple process</span>
+            <span className="badge-brand mb-3">{t('homeStepsBadge')}</span>
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
-              Book in three steps
+              {t('homeStepsTitle')}
             </h2>
             <p className="mt-3 text-gray-500 dark:text-slate-400 max-w-lg mx-auto">
-              No more queuing at the bus park. Book from your phone in minutes.
+              {t('homeStepsSubtitle')}
             </p>
           </div>
 
@@ -318,7 +290,7 @@ export default function HomePage() {
 
           <div className="text-center mt-8">
             <Link to="/how-it-works" className="btn-secondary">
-              Learn more about booking
+              {t('homeLearnMore')}
             </Link>
           </div>
         </div>
@@ -329,13 +301,13 @@ export default function HomePage() {
         <div className="container-page">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10">
             <div>
-              <span className="badge-accent mb-3">Popular routes</span>
+              <span className="badge-accent mb-3">{t('homeRoutesBadge')}</span>
               <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
-                Where do you want to go?
+                {t('homeRoutesTitle')}
               </h2>
             </div>
             <Link to="/routes" className="btn-ghost text-sm shrink-0">
-              View all routes →
+              {t('homeViewAllRoutes')}
             </Link>
           </div>
 
@@ -351,9 +323,9 @@ export default function HomePage() {
       <section className="section">
         <div className="container-page">
           <div className="text-center mb-12">
-            <span className="badge-brand mb-3">Why Rugendo Rwanda</span>
+            <span className="badge-brand mb-3">{t('homeBenefitsBadge')}</span>
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
-              The smarter way to travel
+              {t('homeBenefitsTitle')}
             </h2>
           </div>
 
@@ -374,17 +346,12 @@ export default function HomePage() {
         <div className="container-page">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
-              <span className="badge-brand mb-4">Safe & secure</span>
+              <span className="badge-brand mb-4">{t('homeTrustBadge')}</span>
               <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-5">
-                Your booking, your peace of mind
+                {t('homeTrustTitle')}
               </h2>
               <ul className="space-y-4 text-gray-600 dark:text-slate-400">
-                {[
-                  'Every booking gets a unique reference token — show it on your phone at boarding.',
-                  'Payments are processed through trusted Rwandan mobile money platforms.',
-                  'Your personal data is encrypted and never shared with third parties.',
-                  'Customer support available for any booking issue before your trip.',
-                ].map((item) => (
+                {TRUST_ITEMS.map((item) => (
                   <li key={item} className="flex gap-3 items-start text-sm">
                     <span className="mt-0.5 text-brand-600 dark:text-brand-400 font-bold shrink-0">✓</span>
                     {item}
@@ -393,16 +360,11 @@ export default function HomePage() {
               </ul>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              {[
-                { icon: '🔒', title: 'Encrypted payments', sub: 'All transactions secured' },
-                { icon: '📲', title: 'Digital boarding', sub: 'No paper ticket needed' },
-                { icon: '🕒', title: 'Real-time schedules', sub: 'Always up to date' },
-                { icon: '🛡️', title: 'Data privacy', sub: 'GDPR-aligned standards' },
-              ].map((t) => (
-                <div key={t.title} className="card text-center py-6">
-                  <div className="text-3xl mb-2">{t.icon}</div>
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white">{t.title}</p>
-                  <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">{t.sub}</p>
+              {TRUST_CARDS.map((tc) => (
+                <div key={tc.title} className="card text-center py-6">
+                  <div className="text-3xl mb-2">{tc.icon}</div>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">{tc.title}</p>
+                  <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">{tc.sub}</p>
                 </div>
               ))}
             </div>
@@ -422,25 +384,20 @@ export default function HomePage() {
               <div className="absolute bottom-0 right-1/4 w-48 h-48 rounded-full bg-white opacity-5 blur-3xl" />
             </div>
             <div className="relative">
-              <h2 className="text-3xl md:text-4xl font-extrabold mb-4">
-                Ready for your next trip?
-              </h2>
-              <p className="text-white/80 text-lg mb-8 max-w-lg mx-auto">
-                Create a free account and book your first trip in minutes.
-                Seats fill fast — don't miss yours.
-              </p>
+              <h2 className="text-3xl md:text-4xl font-extrabold mb-4">{t('homeCtaTitle')}</h2>
+              <p className="text-white/80 text-lg mb-8 max-w-lg mx-auto">{t('homeCtaSubtitle')}</p>
               <div className="flex flex-wrap gap-4 justify-center">
                 <Link
                   to="/register"
                   className="inline-flex items-center bg-white text-brand-700 font-bold px-8 py-3 rounded-xl hover:bg-brand-50 transition-colors"
                 >
-                  Create free account
+                  {t('homeCtaCreate')}
                 </Link>
                 <Link
                   to="/search-trips"
                   className="inline-flex items-center bg-white/10 hover:bg-white/20 text-white font-semibold px-8 py-3 rounded-xl border border-white/30 transition-colors"
                 >
-                  Search trips
+                  {t('homeCtaSearch')}
                 </Link>
               </div>
             </div>

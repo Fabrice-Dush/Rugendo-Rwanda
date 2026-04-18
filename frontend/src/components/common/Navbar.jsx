@@ -4,11 +4,11 @@ import { useTheme } from '../../contexts/ThemeContext.jsx';
 import { useLanguage } from '../../contexts/LanguageContext.jsx';
 import { useAuth } from '../../contexts/AuthContext.jsx';
 
-const NAV_LINKS = [
-  { to: '/',             label: 'Home',        end: true },
-  { to: '/search-trips', label: 'Search trips' },
-  { to: '/routes',       label: 'Routes' },
-  { to: '/how-it-works', label: 'How it works' },
+const NAV_LINK_KEYS = [
+  { to: '/',             key: 'navHome',        end: true },
+  { to: '/search-trips', key: 'navSearchTrips' },
+  { to: '/routes',       key: 'navRoutes' },
+  { to: '/how-it-works', key: 'navHowItWorks' },
 ];
 
 const ROLE_DASHBOARD = {
@@ -37,15 +37,14 @@ function getInitials(name) {
 
 export default function Navbar() {
   const { theme, toggleTheme } = useTheme();
-  const { language, changeLanguage, SUPPORTED_LANGUAGES } = useLanguage();
+  const { language, changeLanguage, SUPPORTED_LANGUAGES, t } = useLanguage();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  const [menuOpen, setMenuOpen]       = useState(false);
-  const [avatarOpen, setAvatarOpen]   = useState(false);
-  const avatarRef                      = useRef(null);
+  const [menuOpen, setMenuOpen]     = useState(false);
+  const [avatarOpen, setAvatarOpen] = useState(false);
+  const avatarRef                    = useRef(null);
 
-  // Close avatar dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(e) {
       if (avatarRef.current && !avatarRef.current.contains(e.target)) {
@@ -87,9 +86,9 @@ export default function Navbar() {
 
         {/* Desktop nav links */}
         <div className="hidden md:flex items-center gap-6 text-sm font-medium">
-          {NAV_LINKS.map((l) => (
+          {NAV_LINK_KEYS.map((l) => (
             <NavLink key={l.to} to={l.to} end={l.end} className={navLinkClass}>
-              {l.label}
+              {t(l.key)}
             </NavLink>
           ))}
         </div>
@@ -118,7 +117,6 @@ export default function Navbar() {
 
           {/* Auth controls */}
           {user ? (
-            /* Avatar + dropdown (desktop) */
             <div className="hidden sm:block relative" ref={avatarRef}>
               <button
                 onClick={() => setAvatarOpen((prev) => !prev)}
@@ -140,28 +138,28 @@ export default function Navbar() {
                     onClick={() => setAvatarOpen(false)}
                     className="block px-4 py-2 text-sm text-gray-700 dark:text-slate-200 hover:bg-[#f8f7ff] dark:hover:bg-[#2d1a5e] transition-colors"
                   >
-                    Profile
+                    {t('profile')}
                   </Link>
                   <Link
                     to={dashboardPath}
                     onClick={() => setAvatarOpen(false)}
                     className="block px-4 py-2 text-sm text-gray-700 dark:text-slate-200 hover:bg-[#f8f7ff] dark:hover:bg-[#2d1a5e] transition-colors"
                   >
-                    Dashboard
+                    {t('navDashboard')}
                   </Link>
                   <button
                     onClick={handleLogout}
                     className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                   >
-                    Logout
+                    {t('logout')}
                   </button>
                 </div>
               )}
             </div>
           ) : (
             <div className="hidden sm:flex items-center gap-2">
-              <Link to="/login" className="btn-ghost text-sm">Sign in</Link>
-              <Link to="/register" className="btn-primary text-sm py-2">Register</Link>
+              <Link to="/login" className="btn-ghost text-sm">{t('navSignIn')}</Link>
+              <Link to="/register" className="btn-primary text-sm py-2">{t('register')}</Link>
             </div>
           )}
 
@@ -179,7 +177,20 @@ export default function Navbar() {
       {/* Mobile menu */}
       {menuOpen && (
         <div className="md:hidden bg-white dark:bg-[#0e0a1f] border-t border-[#e8e3ff] dark:border-[#2d1a5e] px-4 pb-4 pt-2 space-y-1">
-          {NAV_LINKS.map((l) => (
+          {/* Mobile language selector */}
+          <div className="pb-2">
+            <select
+              value={language}
+              onChange={(e) => changeLanguage(e.target.value)}
+              className="text-xs bg-transparent border border-[#e8e3ff] dark:border-[#2d1a5e] rounded-lg px-2 py-1.5 text-gray-600 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-brand-500"
+            >
+              {SUPPORTED_LANGUAGES.map((lang) => (
+                <option key={lang.code} value={lang.code}>{lang.label}</option>
+              ))}
+            </select>
+          </div>
+
+          {NAV_LINK_KEYS.map((l) => (
             <NavLink
               key={l.to}
               to={l.to}
@@ -193,7 +204,7 @@ export default function Navbar() {
                 }`
               }
             >
-              {l.label}
+              {t(l.key)}
             </NavLink>
           ))}
           <div className="pt-2 border-t border-[#e8e3ff] dark:border-[#2d1a5e] flex flex-col gap-2">
@@ -205,23 +216,23 @@ export default function Navbar() {
                   onClick={() => setMenuOpen(false)}
                   className="btn-secondary text-sm text-center"
                 >
-                  Profile
+                  {t('profile')}
                 </Link>
                 <Link
                   to={dashboardPath}
                   onClick={() => setMenuOpen(false)}
                   className="btn-secondary text-sm text-center"
                 >
-                  Dashboard
+                  {t('navDashboard')}
                 </Link>
                 <button onClick={handleLogout} className="btn-ghost text-sm text-red-600">
-                  Logout
+                  {t('logout')}
                 </button>
               </>
             ) : (
               <>
-                <Link to="/login" onClick={() => setMenuOpen(false)} className="btn-secondary text-sm text-center">Sign in</Link>
-                <Link to="/register" onClick={() => setMenuOpen(false)} className="btn-gradient text-sm text-center">Register</Link>
+                <Link to="/login" onClick={() => setMenuOpen(false)} className="btn-secondary text-sm text-center">{t('navSignIn')}</Link>
+                <Link to="/register" onClick={() => setMenuOpen(false)} className="btn-gradient text-sm text-center">{t('register')}</Link>
               </>
             )}
           </div>

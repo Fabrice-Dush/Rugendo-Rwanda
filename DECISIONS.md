@@ -354,3 +354,14 @@ Format: `## N. Title` → `**Decision:**` → `**Why:**` → `**Date:**`
 **Why:** This is the narrowest safe rollout for boarding. It avoids introducing a new `BOARDED` enum and a broader lifecycle refactor while still recording who validated boarding and when. The operator UI can present `COMPLETED` as "Boarded" for this phase.
 
 **Date:** 2026-04-17
+
+
+## 36. Global i18n: Custom Context, 4 Languages, Flat Key Namespace
+
+**Decision:** Multilingual support uses a custom React Context (`LanguageContext`) with a single `translations.js` flat key-value map. Supported languages: English (`en`), Kinyarwanda (`rw`), French (`fr`), Kiswahili (`sw`). No external i18n library. Simple `{var}` interpolation added to `t(key, vars)`. Language persisted in `localStorage` under `rugendo-lang`.
+
+**Why:** The custom context was already in place and well-structured. Adding react-i18next would be an unnecessary dependency. Flat namespace keeps lookups simple and matches existing patterns. Kiswahili added as the fourth language per product requirements.
+
+**Date:** 2026-04-18
+
+---

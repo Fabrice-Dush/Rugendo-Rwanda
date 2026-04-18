@@ -6,6 +6,7 @@ const LOCALE_BY_LANGUAGE = {
   en: 'en-RW',
   rw: 'rw-RW',
   fr: 'fr-FR',
+  sw: 'sw',
 };
 
 function formatDateTime(value, locale) {

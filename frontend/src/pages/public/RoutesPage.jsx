@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useLanguage } from '../../contexts/LanguageContext.jsx';
 
-// Placeholder route data — replace with API call
 const ROUTES = [
   { from: 'Kigali',   to: 'Butare',    distance: '136 km', duration: '2h 30min', minPrice: 3500,  departures: 12, popular: true  },
   { from: 'Kigali',   to: 'Musanze',   distance: '111 km', duration: '2h',       minPrice: 3000,  departures: 10, popular: true  },
@@ -17,10 +17,9 @@ const ROUTES = [
   { from: 'Kigali',   to: 'Kayonza',   distance: '82 km',  duration: '1h 20min', minPrice: 2000,  departures: 8,  popular: false },
 ];
 
-const CITIES = [...new Set(ROUTES.flatMap((r) => [r.from, r.to]))].sort();
-
 export default function RoutesPage() {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const [filterFrom, setFilterFrom] = useState('');
   const [filterTo, setFilterTo] = useState('');
 
@@ -34,59 +33,59 @@ export default function RoutesPage() {
 
   return (
     <div>
-      {/* Header */}
       <section className="bg-hero-gradient text-white py-20">
         <div className="container-page text-center">
-          <span className="badge-accent mb-4">All destinations</span>
-          <h1 className="text-4xl md:text-5xl font-extrabold mb-4">Routes & destinations</h1>
-          <p className="text-slate-300 text-lg max-w-xl mx-auto">
-            Browse all intercity routes covered by Rugendo Rwanda — from short city hops to full cross-country journeys.
-          </p>
+          <span className="badge-accent mb-4">{t('routesBadge')}</span>
+          <h1 className="text-4xl md:text-5xl font-extrabold mb-4">{t('routesTitle')}</h1>
+          <p className="text-slate-300 text-lg max-w-xl mx-auto">{t('routesSubtitle')}</p>
         </div>
       </section>
 
-      {/* Popular */}
       <section className="section-muted">
         <div className="container-page">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Most popular routes</h2>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">{t('routesPopularTitle')}</h2>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {popular.map((r) => (
-              <RouteCard key={`${r.from}-${r.to}`} route={r} onBook={(from, to) => navigate(`/search-trips?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`)} />
+              <RouteCard
+                key={`${r.from}-${r.to}`}
+                route={r}
+                t={t}
+                onBook={(from, to) => navigate(`/search-trips?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`)}
+              />
             ))}
           </div>
         </div>
       </section>
 
-      {/* All routes with filter */}
       <section className="section">
         <div className="container-page">
           <div className="flex flex-col sm:flex-row gap-3 mb-8">
             <input
               value={filterFrom}
               onChange={(e) => setFilterFrom(e.target.value)}
-              placeholder="Filter by departure city"
+              placeholder={t('routesFilterFrom')}
               className="input max-w-xs"
             />
             <input
               value={filterTo}
               onChange={(e) => setFilterTo(e.target.value)}
-              placeholder="Filter by destination"
+              placeholder={t('routesFilterTo')}
               className="input max-w-xs"
             />
           </div>
 
           {filtered.length === 0 ? (
-            <p className="text-gray-400 text-center py-10">No routes match your search.</p>
+            <p className="text-gray-400 text-center py-10">{t('routesNoMatch')}</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-[#e8e3ff] dark:border-[#2d1a5e] text-left text-gray-500 dark:text-slate-400">
-                    <th className="pb-3 font-medium">Route</th>
-                    <th className="pb-3 font-medium">Distance</th>
-                    <th className="pb-3 font-medium">Duration</th>
-                    <th className="pb-3 font-medium">Daily departures</th>
-                    <th className="pb-3 font-medium">From</th>
+                    <th className="pb-3 font-medium">{t('routesColRoute')}</th>
+                    <th className="pb-3 font-medium">{t('routesColDistance')}</th>
+                    <th className="pb-3 font-medium">{t('routesColDuration')}</th>
+                    <th className="pb-3 font-medium">{t('routesColDepartures')}</th>
+                    <th className="pb-3 font-medium">{t('routesColPrice')}</th>
                     <th className="pb-3"></th>
                   </tr>
                 </thead>
@@ -95,11 +94,11 @@ export default function RoutesPage() {
                     <tr key={`${r.from}-${r.to}`} className="hover:bg-[#f8f7ff] dark:hover:bg-[#130d2e] transition-colors">
                       <td className="py-3 font-medium text-gray-900 dark:text-white">
                         {r.from} <span className="text-accent-500">→</span> {r.to}
-                        {r.popular && <span className="badge-accent ml-2">Popular</span>}
+                        {r.popular && <span className="badge-accent ml-2">{t('routesPopularBadge')}</span>}
                       </td>
                       <td className="py-3 text-gray-500 dark:text-slate-400">{r.distance}</td>
                       <td className="py-3 text-gray-500 dark:text-slate-400">{r.duration}</td>
-                      <td className="py-3 text-gray-500 dark:text-slate-400">{r.departures}/day</td>
+                      <td className="py-3 text-gray-500 dark:text-slate-400">{r.departures}{t('routesPerDay')}</td>
                       <td className="py-3 font-semibold text-brand-600 dark:text-brand-400">
                         RWF {r.minPrice.toLocaleString()}
                       </td>
@@ -108,7 +107,7 @@ export default function RoutesPage() {
                           onClick={() => navigate(`/search-trips?from=${encodeURIComponent(r.from)}&to=${encodeURIComponent(r.to)}`)}
                           className="btn-secondary text-xs px-3 py-1.5"
                         >
-                          View schedules
+                          {t('routesViewSchedules')}
                         </button>
                       </td>
                     </tr>
@@ -123,22 +122,22 @@ export default function RoutesPage() {
   );
 }
 
-function RouteCard({ route: r, onBook }) {
+function RouteCard({ route: r, onBook, t }) {
   return (
     <div className="card-hover">
       <div className="flex items-center gap-2 mb-3">
         <span className="font-bold text-gray-900 dark:text-white">{r.from}</span>
         <span className="text-accent-500">→</span>
         <span className="font-bold text-gray-900 dark:text-white">{r.to}</span>
-        {r.popular && <span className="badge-accent ml-auto">Popular</span>}
+        {r.popular && <span className="badge-accent ml-auto">{t('routesPopularBadge')}</span>}
       </div>
       <div className="flex gap-4 text-sm text-gray-500 dark:text-slate-400 mb-4">
-        <span>{r.distance}</span>·<span>{r.duration}</span>·<span>{r.departures} trips/day</span>
+        <span>{r.distance}</span>·<span>{r.duration}</span>·<span>{r.departures} {t('routesColDepartures').toLowerCase()}</span>
       </div>
       <div className="flex items-center justify-between">
-        <span className="text-brand-600 dark:text-brand-400 font-bold">from RWF {r.minPrice.toLocaleString()}</span>
+        <span className="text-brand-600 dark:text-brand-400 font-bold">{t('routesFromPrice')} {r.minPrice.toLocaleString()}</span>
         <button onClick={() => onBook(r.from, r.to)} className="btn-primary text-xs px-4 py-2">
-          Book now
+          {t('routesBookNow')}
         </button>
       </div>
     </div>
